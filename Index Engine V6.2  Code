@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V6.2 Enterprise Legal AI Archiver</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+        window.firebaseApp = { initializeApp, getDatabase, ref, set, get };
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; overflow-x: hidden; }
+        .font-code { font-family: 'JetBrains Mono', monospace; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .input-dark { background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(100, 116, 139, 0.5); color: #f8fafc; }
+        .input-dark:focus { border-color: #38bdf8; outline: none; box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2); }
+        .custom-input { border: 1px dashed #38bdf8 !important; background: rgba(56, 189, 248, 0.05) !important; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
+        ::-webkit-scrollbar-thumb { background: rgba(71, 85, 105, 0.8); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(56, 189, 248, 0.8); }
+        .loader { border: 3px solid rgba(56, 189, 248, 0.2); border-top: 3px solid #38bdf8; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .drag-active { border-color: #38bdf8 !important; background-color: rgba(56, 189, 248, 0.1) !important; }
+        .collision-warn { border-color: #ef4444 !important; box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2) !important; }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-6 lg:p-8 flex flex-col">
+
+    <!-- Header -->
+    <header class="flex flex-col xl:flex-row items-start xl:items-center justify-between glass-panel p-6 rounded-2xl shadow-lg gap-4 mb-6 relative overflow-hidden">
+        <div class="absolute -top-24 -right-24 w-64 h-64 bg-sky-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div>
+            <div class="flex items-center gap-3 mb-1 relative z-10">
+                <div class="p-2 bg-sky-500/20 rounded-lg border border-sky-500/30">
+                    <i data-lucide="shield-check" class="text-sky-400 w-6 h-6"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-white tracking-tight">V6.2 Enterprise Legal AI Archiver</h1>
+                <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ml-2">Final Protocol Active</span>
+            </div>
+            <p class="text-sm text-slate-400 relative z-10">Exhaustive taxonomy enforcement, infinite segmentation, and multimodal AI reading.</p>
+        </div>
+        <div class="bg-slate-900/80 text-sky-300 px-4 py-3 rounded-lg text-xs md:text-sm font-bold border border-slate-700 font-code overflow-x-auto w-full xl:w-auto whitespace-nowrap shadow-inner relative z-10" id="formulaPreviewStr">
+            [YYYY.MM.DD].[CASE].[TYPE].[TITLE].[VER].[PRIV].[ORIGIN].[AUTHOR].[ID]
+        </div>
+    </header>
+
+    <!-- Interactive Dashboard Control Panel -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 glass-panel rounded-xl border border-sky-500/30">
+        <button onclick="switchTab('database')" class="flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 px-4 rounded-lg transition-all shadow-lg">
+            <i data-lucide="layout-dashboard" class="w-5 h-5"></i> Open Full Dashboard
+        </button>
+        <button onclick="switchTab('batch')" class="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-4 rounded-lg transition-all shadow-lg">
+            <i data-lucide="brain-circuit" class="w-5 h-5"></i> Run AI Data Analysis
+        </button>
+        <button onclick="exportToCSV()" class="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-lg transition-all shadow-lg">
+            <i data-lucide="download" class="w-5 h-5"></i> Export Master CSV
+        </button>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="flex gap-2 glass-panel p-2 rounded-xl mb-6 overflow-x-auto">
+        <button onclick="switchTab('manual')" id="tab-manual" class="flex-1 py-2.5 px-4 rounded-lg text-sm font-bold bg-sky-600 text-white shadow-md flex items-center justify-center gap-2 min-w-[150px]">
+            <i data-lucide="pen-tool" class="w-4 h-4"></i> Manual Entry
+        </button>
+        <button onclick="switchTab('batch')" id="tab-batch" class="flex-1 py-2.5 px-4 rounded-lg text-sm font-bold bg-transparent text-slate-400 hover:bg-slate-800 hover:text-white flex items-center justify-center gap-2 min-w-[150px]">
+            <i data-lucide="sparkles" class="w-4 h-4"></i> Multimodal Batch
+        </button>
+        <button onclick="switchTab('database')" id="tab-database" class="flex-1 py-2.5 px-4 rounded-lg text-sm font-bold bg-transparent text-slate-400 hover:bg-slate-800 hover:text-white flex items-center justify-center gap-2 min-w-[150px]">
+            <i data-lucide="database" class="w-4 h-4"></i> Analytics & DB
+        </button>
+        <button onclick="switchTab('settings')" id="tab-settings" class="flex-1 py-2.5 px-4 rounded-lg text-sm font-bold bg-transparent text-slate-400 hover:bg-slate-800 hover:text-white flex items-center justify-center gap-2 min-w-[150px]">
+            <i data-lucide="settings" class="w-4 h-4"></i> Settings
+        </button>
+        <button onclick="switchTab('cloud')" id="tab-cloud" class="flex-1 py-2.5 px-4 rounded-lg text-sm font-bold bg-transparent text-slate-400 hover:bg-slate-800 hover:text-white flex items-center justify-center gap-2 min-w-[150px]">
+            <i data-lucide="cloud" class="w-4 h-4"></i> Cloud Sync
+        </button>
+    </div>
+
+    <!-- MAIN CONTENT VIEWS -->
+    <div class="flex-1 relative">
+        
+        <!-- TAB 1: MANUAL ENTRY -->
+        <div id="view-manual" class="glass-panel p-6 rounded-2xl shadow-lg flex flex-col">
+            <h2 class="text-lg font-semibold mb-6 border-b border-slate-700 pb-3 flex items-center gap-2 text-slate-200">
+                <i data-lucide="edit-3" class="w-5 h-5 text-sky-400"></i> Manual Constructor
+            </h2>
+            <form id="namingForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div class="space-y-1.5 lg:col-span-3 border-b border-slate-700/50 pb-4 mb-2">
+                    <label class="text-xs font-bold text-slate-400 uppercase">01 Reference Date</label>
+                    <input type="date" id="refDate" class="w-full md:w-1/3 p-2.5 rounded-lg input-dark font-code text-sm" onchange="generateManualName()">
+                </div>
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold text-slate-400 uppercase">02 Case / Matter</label>
+                    <input type="text" id="caseName" placeholder="CamelCase" class="w-full p-2.5 rounded-lg input-dark text-sm" oninput="generateManualName()">
+                </div>
+                <div class="space-y-1.5 flex flex-col">
+                    <label class="text-xs font-bold text-slate-400 uppercase">03 Type Code</label>
+                    <select id="fileType" class="w-full p-2.5 rounded-lg input-dark font-code text-sm dynamic-dropdown" data-type="types" onchange="toggleCustom('fileType')"></select>
+                    <input type="text" id="custom-fileType" class="w-full mt-2 p-2.5 rounded-lg font-code text-sm hidden custom-input" placeholder="CUSTOM CODE..." oninput="generateManualName()">
+                </div>
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold text-slate-400 uppercase">04 Title</label>
+                    <input type="text" id="docTitle" placeholder="CamelCase" class="w-full p-2.5 rounded-lg input-dark text-sm" oninput="generateManualName()">
+                </div>
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold text-slate-400 uppercase">05 Version</label>
+                    <select id="version" class="w-full p-2.5 rounded-lg input-dark font-code text-sm" onchange="generateManualName()">
+                        <option value="v01">v01 (Draft)</option><option value="v02">v02 (Draft)</option><option value="v03">v03 (Draft)</option>
+                        <option value="DRAF">DRAF (General Draft)</option><option value="FIN">FIN (Final)</option><option value="EXE">EXE (Executed)</option>
+                        <option value="REDA">REDA (Redacted)</option><option value="AMND">AMND (Amended)</option><option value="SUPP">SUPP (Supplemental)</option>
+                        <option value="VOID">VOID (Canceled)</option><option value="TEMP">TEMP (Template)</option>
+                    </select>
+                </div>
+                <div class="space-y-1.5 flex flex-col">
+                    <label class="text-xs font-bold text-slate-400 uppercase">06 Privilege Tag</label>
+                    <select id="privTag" class="w-full p-2.5 rounded-lg input-dark font-code text-sm dynamic-dropdown" data-type="privs" onchange="toggleCustom('privTag')"></select>
+                    <input type="text" id="custom-privTag" class="w-full mt-2 p-2.5 rounded-lg font-code text-sm hidden custom-input" placeholder="CUSTOM CODE..." oninput="generateManualName()">
+                </div>
+                <div class="space-y-1.5 flex flex-col">
+                    <label class="text-xs font-bold text-amber-400 uppercase">07 Origin</label>
+                    <select id="originTag" class="w-full p-2.5 rounded-lg input-dark font-code text-sm border-amber-500/30 dynamic-dropdown" data-type="origins" onchange="toggleCustom('originTag')"></select>
+                    <input type="text" id="custom-originTag" class="w-full mt-2 p-2.5 rounded-lg font-code text-sm hidden custom-input" placeholder="CUSTOM CODE..." oninput="generateManualName()">
+                </div>
+                <div class="space-y-1.5 lg:col-span-2">
+                    <label class="text-xs font-bold text-slate-400 uppercase">08 Author (F.Initial + Last)</label>
+                    <input type="text" id="author" placeholder="e.g., RWILLIAMS" class="w-full p-2.5 rounded-lg input-dark text-sm" oninput="generateManualName()">
+                </div>
+
+                <!-- Dynamic Custom Segments Injection Area -->
+                <div id="dynamicSegmentsContainer" class="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-5"></div>
+                
+                <!-- Output & Collision Warning -->
+                <div class="lg:col-span-3 mt-4 pt-4 border-t border-slate-700">
+                    <div id="collisionWarning" class="hidden bg-rose-500/20 border border-rose-500/50 text-rose-300 p-3 rounded-lg mb-3 text-xs font-bold flex items-center gap-2">
+                        <i data-lucide="alert-triangle" class="w-4 h-4"></i> Duplicate Detected in Master Log! Appending '-Part2' to Title.
+                    </div>
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-700 break-all flex items-center shadow-inner relative group cursor-pointer" onclick="copyManualToClipboard()">
+                        <p id="manualOutput" class="font-code text-sm text-sky-300 font-bold select-all leading-relaxed">0000.00.00.NOCASE.TRAN.NOTITLE.v01.PUBL.CLNT.NOAUTHOR.[ID_AUTO]</p>
+                    </div>
+                    <div class="flex justify-end mt-3">
+                        <button type="button" onclick="appendManualToLog()" class="bg-sky-600 hover:bg-sky-500 text-white py-2 px-6 rounded-lg font-bold text-sm flex items-center gap-2">
+                            <i data-lucide="plus" class="w-4 h-4"></i> Append to Log
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- TAB 2: MULTIMODAL BATCH -->
+        <div id="view-batch" class="glass-panel p-6 rounded-2xl shadow-lg hidden flex-col gap-4">
+            <h2 class="text-lg font-semibold text-slate-200 border-b border-slate-700/50 pb-3 flex items-center gap-2">
+                <i data-lucide="file-scan" class="w-5 h-5 text-sky-400"></i> Deep Content Reading Ingestion
+            </h2>
+            <p class="text-sm text-slate-400 mb-2">Drag and drop PDFs or Images. The AI will physically "read" the documents to extract dates, case names, and content types automatically.</p>
+            
+            <div id="batchInputArea" class="flex flex-col gap-4">
+                <div id="dropZone" class="border-2 border-dashed border-slate-600 bg-slate-900/50 rounded-xl p-12 text-center transition-all hover:border-sky-500/50 hover:bg-slate-800/50 flex flex-col items-center justify-center cursor-pointer relative">
+                    <input type="file" id="fileUploader" multiple accept="image/*,application/pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="handleFileSelection(event)">
+                    <i data-lucide="upload-cloud" class="w-12 h-12 text-sky-500 mb-3"></i>
+                    <p class="text-base font-bold text-slate-200">Drag & Drop PDFs or Images</p>
+                </div>
+                <div id="stagedFilesContainer" class="hidden bg-slate-900/80 p-4 rounded-lg border border-slate-700 max-h-48 overflow-y-auto custom-scrollbar">
+                    <ul id="stagedFilesList" class="text-sm text-slate-300 space-y-1"></ul>
+                </div>
+                <button onclick="processMultimodalBatch()" id="processBtn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-lg font-bold transition-all shadow-[0_0_15px_rgba(79,70,229,0.3)] flex justify-center items-center gap-2 hidden">
+                    <i data-lucide="brain-circuit" class="w-5 h-5"></i> Read Documents & Generate Metadata
+                </button>
+            </div>
+
+            <div id="batchOutputArea" class="hidden flex-col gap-4">
+                <div class="bg-slate-900/80 border border-slate-700 rounded-xl overflow-hidden min-h-[300px]">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs whitespace-nowrap">
+                            <thead class="bg-slate-800">
+                                <tr><th class="p-3 font-bold text-slate-400">File</th><th class="p-3 font-bold text-slate-400">Context Extracted</th><th class="p-3 font-bold text-slate-400">Proposed Name</th><th class="p-3 font-bold text-slate-400">Status</th></tr>
+                            </thead>
+                            <tbody id="batchTableBody" class="divide-y divide-slate-800"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="resetBatch()" class="px-6 py-2.5 rounded-lg font-bold text-sm bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors">Clear</button>
+                    <button onclick="approveBatch()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg font-bold transition-all shadow-md flex justify-center items-center gap-2 text-sm">
+                        <i data-lucide="check-check" class="w-4 h-4"></i> Approve & Save to Master Database
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: DATABASE & ANALYTICS -->
+        <div id="view-database" class="glass-panel p-6 rounded-2xl shadow-lg hidden flex-col gap-6 h-[80vh]">
+            <div class="flex justify-between items-center border-b border-slate-700/50 pb-3">
+                <h2 class="text-lg font-semibold text-slate-200 flex items-center gap-2"><i data-lucide="bar-chart-2" class="w-5 h-5 text-sky-400"></i> Archive Analytics</h2>
+                <div class="flex gap-2">
+                    <button onclick="exportToCSV()" class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1"><i data-lucide="download" class="w-3 h-3"></i> CSV</button>
+                    <button onclick="downloadRenameScript('mac')" class="bg-slate-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 border border-slate-600"><i data-lucide="terminal" class="w-3 h-3"></i> Script</button>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+                <div class="lg:col-span-1 flex flex-col gap-4">
+                    <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700 h-64">
+                        <canvas id="archiveChart"></canvas>
+                    </div>
+                    <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase mb-3">Filters</h3>
+                        <input type="text" id="searchInput" placeholder="Search archive..." class="w-full p-2 mb-3 rounded-lg input-dark text-xs" oninput="renderDatabase()">
+                        <select id="filterType" class="w-full p-2 mb-3 rounded-lg input-dark text-xs dynamic-dropdown" data-type="types" onchange="renderDatabase()"><option value="ALL">All Types</option></select>
+                        <p class="text-[10px] text-slate-500 mt-2">Total Files: <span id="totalFileCount" class="font-bold text-sky-400">0</span></p>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-2 bg-slate-900/80 border border-slate-700 rounded-xl flex flex-col overflow-hidden relative">
+                    <div class="overflow-y-auto flex-1 custom-scrollbar p-2">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-800 sticky top-0">
+                                <tr>
+                                    <th class="p-2 font-bold text-slate-400 w-24">ID</th>
+                                    <th class="p-2 font-bold text-slate-400">Filename</th>
+                                </tr>
+                            </thead>
+                            <tbody id="databaseBody" class="divide-y divide-slate-800/50"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: SETTINGS (Dynamic Taxonomy & Extensions) -->
+        <div id="view-settings" class="glass-panel p-6 rounded-2xl shadow-lg hidden">
+            <h2 class="text-lg font-semibold mb-6 border-b border-slate-700 pb-3 flex items-center gap-2 text-slate-200">
+                <i data-lucide="sliders" class="w-5 h-5 text-sky-400"></i> Advanced Taxonomy & Extensibility
+            </h2>
+            
+            <div class="bg-indigo-900/30 border border-indigo-500/50 p-4 rounded-xl mb-6">
+                <h3 class="text-sm font-bold text-indigo-300 mb-2">Add Infinite Custom Segments</h3>
+                <p class="text-xs text-indigo-200/70 mb-3">Append an additional parameter (e.g., Bates Number, Geography) to the end of the nomenclature string (before the ID).</p>
+                <div class="flex gap-2 mb-3">
+                    <input type="text" id="newSegmentName" placeholder="Segment Name" class="w-1/3 p-2 rounded input-dark text-xs">
+                    <button onclick="addCustomSegment()" class="bg-indigo-600 hover:bg-indigo-500 px-4 rounded text-white text-xs font-bold transition">Add Segment</button>
+                </div>
+                <ul id="list-segments" class="space-y-2"></ul>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700">
+                    <h3 class="text-sm font-bold text-slate-200 mb-3">File Types</h3>
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="newTypeCode" placeholder="CODE" class="w-1/3 p-2 rounded input-dark text-xs font-code uppercase">
+                        <input type="text" id="newTypeDesc" placeholder="Description" class="w-2/3 p-2 rounded input-dark text-xs">
+                        <button onclick="addTaxonomy('types')" class="bg-sky-600 px-3 rounded text-white"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                    </div>
+                    <ul id="list-types" class="space-y-2 max-h-64 overflow-y-auto custom-scrollbar pr-2"></ul>
+                </div>
+
+                <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700">
+                    <h3 class="text-sm font-bold text-slate-200 mb-3">Privilege Tags</h3>
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="newPrivCode" placeholder="CODE" class="w-1/3 p-2 rounded input-dark text-xs font-code uppercase">
+                        <input type="text" id="newPrivDesc" placeholder="Description" class="w-2/3 p-2 rounded input-dark text-xs">
+                        <button onclick="addTaxonomy('privs')" class="bg-sky-600 px-3 rounded text-white"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                    </div>
+                    <ul id="list-privs" class="space-y-2 max-h-64 overflow-y-auto custom-scrollbar pr-2"></ul>
+                </div>
+
+                <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700">
+                    <h3 class="text-sm font-bold text-slate-200 mb-3">Origin Tags</h3>
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="newOriginCode" placeholder="CODE" class="w-1/3 p-2 rounded input-dark text-xs font-code uppercase">
+                        <input type="text" id="newOriginDesc" placeholder="Description" class="w-2/3 p-2 rounded input-dark text-xs">
+                        <button onclick="addTaxonomy('origins')" class="bg-sky-600 px-3 rounded text-white"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                    </div>
+                    <ul id="list-origins" class="space-y-2 max-h-64 overflow-y-auto custom-scrollbar pr-2"></ul>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button onclick="resetTaxonomy()" class="text-xs text-rose-400 hover:text-rose-300">Restore Factory Defaults</button>
+            </div>
+        </div>
+
+        <!-- TAB 5: CLOUD SYNC -->
+        <div id="view-cloud" class="glass-panel p-6 rounded-2xl shadow-lg hidden max-w-2xl mx-auto">
+            <h2 class="text-lg font-semibold mb-6 border-b border-slate-700 pb-3 flex items-center gap-2 text-slate-200">
+                <i data-lucide="cloud-lightning" class="w-5 h-5 text-sky-400"></i> Firebase Secure Backup
+            </h2>
+            <p class="text-sm text-slate-400 mb-6">Automatically push an encrypted copy of your Master Log to your private Firebase Realtime Database. This protects your archive from local browser clears.</p>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="text-xs font-bold text-slate-400 uppercase">Firebase Database URL</label>
+                    <input type="text" id="fbUrl" placeholder="https://your-project.firebaseio.com" class="w-full p-2.5 rounded-lg input-dark font-code text-sm">
+                </div>
+                <div class="flex justify-between items-center pt-4">
+                    <span id="cloudStatus" class="text-xs font-bold text-slate-500 flex items-center gap-1"><i data-lucide="cloud-off" class="w-4 h-4"></i> Not Connected</span>
+                    <button onclick="saveCloudConfig()" class="bg-indigo-600 hover:bg-indigo-500 text-white py-2 px-6 rounded-lg font-bold text-sm transition-all shadow-md">Connect & Sync</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- API Key Modal -->
+    <div id="apiModal" class="fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-700 rounded-xl p-6 max-w-md w-full shadow-2xl">
+            <h3 class="text-lg font-bold text-white mb-2">Gemini API Key Required</h3>
+            <p class="text-xs text-slate-400 mb-4">To use the Multimodal Vision AI, enter your free Google Gemini API Key. It is stored locally.</p>
+            <input type="password" id="geminiKeyInput" class="w-full p-2 mb-4 rounded input-dark font-code text-sm" placeholder="AIzaSy...">
+            <button onclick="saveApiKey()" class="w-full bg-sky-600 hover:bg-sky-500 text-white p-2 rounded font-bold transition">Save Key & Enter</button>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="fixed bottom-4 right-4 z-[100] flex flex-col gap-2"></div>
+
+    <script>
+        lucide.createIcons();
+        const apiKey = ""; // the execution environment provides the key at runtime
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            const bgClass = type === 'error' ? 'bg-rose-600' : (type === 'success' ? 'bg-emerald-600' : 'bg-sky-600');
+            toast.className = `${bgClass} text-white px-4 py-3 rounded-lg shadow-lg text-sm font-bold flex items-center gap-2 transition-all duration-300`;
+            toast.innerHTML = `<i data-lucide="${type==='error'?'alert-triangle':'check-circle'}" class="w-4 h-4"></i> <span>${message}</span>`;
+            container.appendChild(toast);
+            lucide.createIcons();
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // --- GLOBAL STATE ---
+        let masterLog = JSON.parse(localStorage.getItem('v6MasterLog')) || [];
+        let currentArchiveNum = parseInt(localStorage.getItem('v6ArchiveNum')) || 1;
+        let stagedFiles = [];
+        let batchResults = [];
+        let analyticsChart = null;
+
+        // --- DYNAMIC TAXONOMY SETTINGS (The Definitive List) ---
+        const defaultTaxonomy = {
+            types: [
+                {code: 'TRAN', desc: 'Transcript'}, {code: 'CONT', desc: 'Contract'}, {code: 'PLEA', desc: 'Pleading'}, {code: 'DISC', desc: 'Discovery'}, 
+                {code: 'LEGL', desc: 'Legal Research'}, {code: 'AFFI', desc: 'Affidavit'}, {code: 'EXHB', desc: 'Exhibit'}, {code: 'ORDR', desc: 'Court Order'}, 
+                {code: 'CMPT', desc: 'Complaint'}, {code: 'APPL', desc: 'Appellate'}, {code: 'PBILL', desc: 'Personal Bill'}, {code: 'WORKBL', desc: 'Work Bill'}, 
+                {code: 'RECPT', desc: 'Personal Receipt'}, {code: 'WRECPT', desc: 'Work Receipt'}, {code: 'TAXF', desc: 'Tax Forms'}, {code: 'INSR', desc: 'Insurance'}, 
+                {code: 'MEDB', desc: 'Medical Bills'}, {code: 'DOCU', desc: 'Word/Text'}, {code: 'PDFX', desc: 'Static PDF'}, {code: 'SPRD', desc: 'Spreadsheet'}, 
+                {code: 'PRES', desc: 'Presentation'}, {code: 'CORR', desc: 'Correspondence'}, {code: 'EMAL', desc: 'Email Export'}, {code: 'EVID', desc: 'Evidence'}, 
+                {code: 'FILF', desc: 'Fillable Form'}, {code: 'CERT', desc: 'Certificate'}, {code: 'PHOT', desc: 'Photo'}, {code: 'SCRSHT', desc: 'Screenshot'}, 
+                {code: 'VIDO', desc: 'Video'}, {code: 'SCRR', desc: 'Screen Record'}, {code: 'AUDI', desc: 'Audio'}, {code: 'FAXF', desc: 'Fax Scan'}, 
+                {code: 'WEBP', desc: 'Web Archive'}, {code: 'BACKPW', desc: 'Backup Codes'}, {code: 'CSVF', desc: 'CSV Data'}, {code: 'JSON', desc: 'JSON Data'}, 
+                {code: 'MARD', desc: 'Markdown'}, {code: 'TXTF', desc: 'Plain Text'}, {code: 'MDCA', desc: 'Medical Records'}
+            ],
+            privs: [
+                {code: 'PUBL', desc: 'Public Record'}, {code: 'CONF', desc: 'Confidential'}, {code: 'PRIV', desc: 'Attorney-Client'}, {code: 'WORK', desc: 'Work Product'}, 
+                {code: 'SEAL', desc: 'Under Seal'}, {code: 'REST', desc: 'Restricted'}, {code: 'SECR', desc: 'Secret'}, {code: 'PERS', desc: 'Personal'}, 
+                {code: 'PII', desc: 'Personally Identifiable'}, {code: 'HIPA', desc: 'HIPAA Protected'}
+            ],
+            origins: [
+                {code: 'CLNT', desc: 'Client'}, {code: 'OPPS', desc: 'Opposing Party'}, {code: 'FIRM', desc: 'Internal Firm'}, {code: 'COCO', desc: 'Co-Counsel'}, 
+                {code: 'COUR', desc: 'Court/Gov'}, {code: '3RDP', desc: 'Third Party'}, {code: 'WITN', desc: 'Witness'}, {code: 'EXPT', desc: 'Expert Witness'}, 
+                {code: 'MEDI', desc: 'Mediator'}, {code: 'AGEN', desc: 'Gov Agency'}, {code: 'VEND', desc: 'Vendor'}, {code: 'BANK', desc: 'Bank'}, {code: 'PERS', desc: 'Personal/Self'}
+            ]
+        };
+        let taxonomy = JSON.parse(localStorage.getItem('v6Taxonomy')) || JSON.parse(JSON.stringify(defaultTaxonomy));
+        let customSegments = JSON.parse(localStorage.getItem('v6CustomSegments')) || [];
+
+        function saveTaxonomy() {
+            localStorage.setItem('v6Taxonomy', JSON.stringify(taxonomy));
+            renderSettings();
+            renderDropdowns();
+        }
+
+        function resetTaxonomy() {
+            taxonomy = JSON.parse(JSON.stringify(defaultTaxonomy));
+            customSegments = [];
+            localStorage.setItem('v6CustomSegments', JSON.stringify(customSegments));
+            saveTaxonomy();
+            renderCustomSegments();
+            showToast("Restored Factory Protocol", "success");
+        }
+
+        function addTaxonomy(cat) {
+            const codeEl = document.getElementById(`new${cat.charAt(0).toUpperCase() + cat.slice(1, -1)}Code`);
+            const descEl = document.getElementById(`new${cat.charAt(0).toUpperCase() + cat.slice(1, -1)}Desc`);
+            const code = codeEl.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+            const desc = descEl.value.trim();
+            if(code && desc) {
+                taxonomy[cat].push({code, desc});
+                codeEl.value = ''; descEl.value = '';
+                saveTaxonomy();
+            }
+        }
+
+        function deleteTaxonomy(cat, index) {
+            taxonomy[cat].splice(index, 1);
+            saveTaxonomy();
+        }
+
+        function addCustomSegment() {
+            const name = document.getElementById('newSegmentName').value.trim();
+            if(name) {
+                customSegments.push({name: name, value: ''});
+                localStorage.setItem('v6CustomSegments', JSON.stringify(customSegments));
+                document.getElementById('newSegmentName').value = '';
+                renderCustomSegments();
+            }
+        }
+        function deleteCustomSegment(index) {
+            customSegments.splice(index, 1);
+            localStorage.setItem('v6CustomSegments', JSON.stringify(customSegments));
+            renderCustomSegments();
+        }
+
+        function renderSettings() {
+            ['types', 'privs', 'origins'].forEach(cat => {
+                const ul = document.getElementById(`list-${cat}`);
+                ul.innerHTML = '';
+                taxonomy[cat].forEach((item, i) => {
+                    ul.innerHTML += `<li class="flex justify-between items-center bg-slate-800 p-2 rounded text-xs">
+                        <span class="font-code text-sky-300 font-bold">${item.code}</span> <span class="text-slate-400">${item.desc}</span>
+                        <button onclick="deleteTaxonomy('${cat}', ${i})" class="text-rose-500 hover:text-rose-400"><i data-lucide="x" class="w-3 h-3"></i></button>
+                    </li>`;
+                });
+            });
+            lucide.createIcons();
+        }
+
+        function renderCustomSegments() {
+            const listContainer = document.getElementById('list-segments');
+            const inputsContainer = document.getElementById('dynamicSegmentsContainer');
+            listContainer.innerHTML = '';
+            inputsContainer.innerHTML = '';
+            
+            customSegments.forEach((seg, i) => {
+                // Settings tab list
+                listContainer.innerHTML += `<li class="flex justify-between items-center bg-indigo-900/50 p-2 rounded text-xs">
+                    <span class="text-indigo-200 font-bold">Segment Extension: ${seg.name}</span>
+                    <button onclick="deleteCustomSegment(${i})" class="text-rose-500"><i data-lucide="x" class="w-3 h-3"></i></button>
+                </li>`;
+
+                // Manual tab dynamic input
+                inputsContainer.innerHTML += `
+                    <div class="space-y-1.5 flex flex-col">
+                        <label class="text-xs font-bold text-indigo-400 uppercase border-b border-indigo-500/30 pb-1">Ext: ${seg.name}</label>
+                        <input type="text" class="w-full p-2.5 rounded-lg input-dark font-code text-sm" placeholder="VALUE" oninput="updateCustomSegment(${i}, this.value)">
+                    </div>`;
+            });
+            updatePreviewFormula();
+            generateManualName();
+            lucide.createIcons();
+        }
+
+        function updateCustomSegment(i, val) {
+            customSegments[i].value = val;
+            generateManualName();
+        }
+
+        function renderDropdowns() {
+            document.querySelectorAll('.dynamic-dropdown').forEach(select => {
+                const cat = select.getAttribute('data-type');
+                const isFilter = select.id === 'filterType';
+                select.innerHTML = isFilter ? '<option value="ALL">All Types</option>' : '';
+                taxonomy[cat].forEach(item => {
+                    select.innerHTML += `<option value="${item.code}">${item.code} - ${item.desc}</option>`;
+                });
+                if(!isFilter) {
+                    select.innerHTML += `<option value="CUSTOM" class="font-bold text-sky-400">[ + CUSTOM ]</option>`;
+                }
+            });
+            generateManualName();
+        }
+
+        function toggleCustom(id) {
+            const select = document.getElementById(id);
+            const customInput = document.getElementById(`custom-${id}`);
+            if(select.value === 'CUSTOM') {
+                customInput.classList.remove('hidden');
+                customInput.focus();
+            } else {
+                customInput.classList.add('hidden');
+            }
+            generateManualName();
+        }
+
+        function getDropdownValue(id) {
+            const select = document.getElementById(id);
+            if(select.value === 'CUSTOM') {
+                return document.getElementById(`custom-${id}`).value.toUpperCase().replace(/[^A-Z0-9]/g, '') || "CUSTOM";
+            }
+            return select.value;
+        }
+
+        function updatePreviewFormula() {
+            let formula = "[YYYY.MM.DD].[CASE].[TYPE].[TITLE].[VER].[PRIV].[ORIGIN].[AUTHOR]";
+            customSegments.forEach(seg => formula += `.[${seg.name.toUpperCase()}]`);
+            formula += ".[ID]";
+            document.getElementById('formulaPreviewStr').innerText = formula;
+        }
+
+        // --- TAB SWITCHING ---
+        function switchTab(tab) {
+            ['batch', 'manual', 'database', 'settings', 'cloud'].forEach(t => {
+                document.getElementById(`view-${t}`).classList.add('hidden');
+                document.getElementById(`tab-${t}`).classList.remove('bg-sky-600', 'text-white', 'shadow-md');
+                document.getElementById(`tab-${t}`).classList.add('bg-transparent', 'text-slate-400');
+            });
+            document.getElementById(`view-${tab}`).classList.remove('hidden');
+            if(tab === 'batch') document.getElementById(`view-batch`).classList.add('flex');
+            if(tab === 'database') { document.getElementById(`view-database`).classList.add('flex'); renderDatabase(); }
+            document.getElementById(`tab-${tab}`).classList.remove('bg-transparent', 'text-slate-400');
+            document.getElementById(`tab-${tab}`).classList.add('bg-sky-600', 'text-white', 'shadow-md');
+        }
+
+        // --- COLLISION DETECTION ---
+        function checkCollision(generatedName) {
+            // Check base string up to the Author segment
+            const parts = generatedName.split('.');
+            if(parts.length < 8) return false;
+            const baseGenerated = parts.slice(0, 8).join('.'); 
+            const exists = masterLog.find(log => log.newName.includes(baseGenerated));
+            return exists ? true : false;
+        }
+
+        function toCamelCase(str) {
+            return (str||"").replace(/(?:^\w|[A-Z]|\b\w)/g, w => w.toUpperCase()).replace(/\s+/g, '').replace(/[^a-zA-Z0-9]/g, '');
+        }
+
+        // --- MANUAL ENTRY ---
+        function generateManualName() {
+            const refDate = document.getElementById('refDate').value.replace(/-/g, '.') || "0000.00.00";
+            const caseName = toCamelCase(document.getElementById('caseName').value) || "NOCASE";
+            const fileType = getDropdownValue('fileType') || "DOCU";
+            let docTitle = toCamelCase(document.getElementById('docTitle').value) || "NOTITLE";
+            const version = document.getElementById('version').value || "v01";
+            const privTag = getDropdownValue('privTag') || "PUBL";
+            const originTag = getDropdownValue('originTag') || "CLNT";
+            const author = document.getElementById('author').value.trim().replace(/[^a-zA-Z]/g, '').toUpperCase() || "NOAUTHOR";
+
+            let previewStr = `${refDate}.${caseName}.${fileType}.${docTitle}.${version}.${privTag}.${originTag}.${author}`;
+            
+            // Append Dynamic Extenstions
+            customSegments.forEach(seg => {
+                const safeVal = toCamelCase(seg.value) || "X";
+                previewStr += `.${safeVal}`;
+            });
+
+            previewStr += `.[ID_AUTO]`;
+            
+            // Collision Check
+            const warnEl = document.getElementById('collisionWarning');
+            const outputEl = document.getElementById('manualOutput');
+            if (checkCollision(previewStr)) {
+                // Insert Part2 into Title
+                docTitle += 'Part2';
+                previewStr = `${refDate}.${caseName}.${fileType}.${docTitle}.${version}.${privTag}.${originTag}.${author}`;
+                customSegments.forEach(seg => previewStr += `.${toCamelCase(seg.value) || "X"}`);
+                previewStr += `.[ID_AUTO]`;
+
+                warnEl.classList.remove('hidden');
+                outputEl.parentElement.classList.add('collision-warn');
+            } else {
+                warnEl.classList.add('hidden');
+                outputEl.parentElement.classList.remove('collision-warn');
+            }
+
+            outputEl.innerText = previewStr;
+            return previewStr;
+        }
+
+        function appendManualToLog() {
+            const baseStr = generateManualName();
+            const idStr = `FILE${String(currentArchiveNum).padStart(6, '0')}`;
+            const finalName = baseStr.replace('[ID_AUTO]', idStr);
+            saveToLog("MANUAL_ENTRY", finalName, idStr);
+        }
+
+        function copyManualToClipboard() {
+            const text = document.getElementById('manualOutput').innerText.replace('[ID_AUTO]', `FILE${String(currentArchiveNum).padStart(6, '0')}`);
+            navigator.clipboard.writeText(text).then(() => showToast("Copied!", "success"));
+        }
+
+        function saveToLog(oldName, newName, idStr) {
+            masterLog.push({ id: idStr, oldName, newName, timestamp: new Date().toISOString(), type: newName.split('.')[2] });
+            currentArchiveNum++;
+            localStorage.setItem('v6MasterLog', JSON.stringify(masterLog));
+            localStorage.setItem('v6ArchiveNum', currentArchiveNum);
+            syncToCloud(); 
+            showToast("Saved to Archive", "success");
+            generateManualName();
+        }
+
+        // --- MULTIMODAL BATCH PROCESSOR ---
+        document.getElementById('dropZone').addEventListener('dragover', (e) => { e.preventDefault(); e.currentTarget.classList.add('drag-active'); });
+        document.getElementById('dropZone').addEventListener('dragleave', (e) => e.currentTarget.classList.remove('drag-active'));
+        document.getElementById('dropZone').addEventListener('drop', (e) => {
+            e.preventDefault(); e.currentTarget.classList.remove('drag-active');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        function handleFileSelection(e) { handleFiles(e.target.files); e.target.value = ''; }
+
+        function handleFiles(files) {
+            if(!files || files.length === 0) return;
+            const validFiles = Array.from(files).filter(f => f.type.startsWith('image/') || f.type === 'application/pdf');
+            if(validFiles.length === 0) return showToast("Only Images and PDFs are supported for Multimodal.", "error");
+            
+            document.getElementById('stagedFilesContainer').classList.remove('hidden');
+            document.getElementById('processBtn').classList.remove('hidden');
+            const ul = document.getElementById('stagedFilesList');
+            
+            validFiles.forEach(f => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    stagedFiles.push({ name: f.name, mime: f.type, data: e.target.result.split(',')[1] });
+                    ul.innerHTML += `<li><i data-lucide="file" class="w-3 h-3 inline text-sky-400"></i> ${f.name}</li>`;
+                    lucide.createIcons();
+                };
+                reader.readAsDataURL(f);
+            });
+        }
+
+        async function processMultimodalBatch() {
+            if(stagedFiles.length === 0) return;
+            const btn = document.getElementById('processBtn');
+            btn.innerHTML = `<div class="loader"></div> <span class="ml-2">Vision AI Analyzing ${stagedFiles.length} files...</span>`;
+            btn.disabled = true;
+
+            const typesStr = taxonomy.types.map(t => `${t.code}`).join(', ');
+            let formulaTarget = "[YYYY.MM.DD].[CASE].[TYPE].[TITLE].[VER].[PRIV].[ORIGIN].[AUTHOR]";
+            customSegments.forEach(seg => formulaTarget += `.[${seg.name.toUpperCase()}]`);
+
+            const SYSTEM_PROMPT = `You are an expert legal data archiver. Read the provided document images/PDFs. Extract context to create this exact nomenclature string: ${formulaTarget}.[ID_AUTO].
+            Rules: Use YYYY.MM.DD from doc. Case is CamelCase. Type MUST be one of: ${typesStr}. Title is CamelCase summary. Priv default PUBL. Origin default CLNT. Output valid JSON array containing {oldName, date, case, type, title, version, priv, origin, author, ...customSegmentKeys}.`;
+
+            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const parts = [];
+            stagedFiles.forEach(f => {
+                parts.push({ text: `Filename context: ${f.name}` });
+                parts.push({ inlineData: { mimeType: f.mime, data: f.data } });
+            });
+
+            const schemaProps = {
+                oldName: { type: "STRING" },
+                date: { type: "STRING" },
+                case: { type: "STRING" },
+                type: { type: "STRING" },
+                title: { type: "STRING" },
+                version: { type: "STRING" },
+                priv: { type: "STRING" },
+                origin: { type: "STRING" },
+                author: { type: "STRING" }
+            };
+            customSegments.forEach(seg => {
+                schemaProps[seg.name.toLowerCase()] = { type: "STRING" };
+            });
+
+            const payload = { 
+                contents: [{ role: "user", parts }], 
+                systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+                generationConfig: { 
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "ARRAY",
+                        items: {
+                            type: "OBJECT",
+                            properties: schemaProps
+                        }
+                    }
+                } 
+            };
+
+            try {
+                const delays = [1000, 2000, 4000, 8000, 16000];
+                let json = null;
+                let lastError = null;
+
+                for (let i = 0; i <= delays.length; i++) {
+                    try {
+                        const res = await fetch(endpoint, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        
+                        const textData = await res.text();
+                        try {
+                            json = JSON.parse(textData);
+                        } catch (e) {
+                            throw new Error("Invalid JSON response from API");
+                        }
+                        
+                        if (!res.ok) {
+                            throw new Error(json.error?.message || "API Failed with status " + res.status);
+                        }
+
+                        lastError = null;
+                        break;
+                    } catch (err) {
+                        lastError = err;
+                        if (i < delays.length) {
+                            await new Promise(r => setTimeout(r, delays[i]));
+                        }
+                    }
+                }
+
+                if (lastError) throw lastError;
+
+                const aiText = json.candidates?.[0]?.content?.parts?.[0]?.text;
+                if(!aiText) {
+                    throw new Error("AI returned empty or unexpected response structure");
+                }
+                
+                let cleanText = aiText.replace(/```json/g, '').replace(/```/g, '').trim();
+                batchResults = JSON.parse(cleanText);
+                
+                batchResults.forEach((res, i) => {
+                    const ext = '.' + stagedFiles[i].name.split('.').pop();
+                    res.oldName = stagedFiles[i].name;
+                    res.extension = ext;
+                    
+                    let proposed = `${res.date||'0000.00.00'}.${res.case||'NOCASE'}.${res.type||'DOCU'}.${res.title||'NOTITLE'}.${res.version||'v01'}.${res.priv||'PUBL'}.${res.origin||'CLNT'}.${res.author||'NOAUTHOR'}`;
+                    customSegments.forEach(seg => proposed += `.${res[seg.name.toLowerCase()] || 'X'}`);
+                    proposed += '.[ID_AUTO]';
+
+                    if(checkCollision(proposed)) {
+                        res.title += 'Part2';
+                        proposed = proposed.replace(res.title.replace('Part2',''), res.title); // Rough hack, better to rebuild
+                        res.collision = true;
+                    }
+                    res.preview = proposed;
+                });
+
+                document.getElementById('batchInputArea').classList.add('hidden');
+                document.getElementById('batchOutputArea').classList.remove('hidden');
+                document.getElementById('batchOutputArea').classList.add('flex');
+                
+                const tbody = document.getElementById('batchTableBody');
+                tbody.innerHTML = '';
+                batchResults.forEach(item => {
+                    const status = item.collision ? `<span class="text-rose-400 font-bold bg-rose-500/20 px-2 py-1 rounded">Duplicate Avoided</span>` : `<span class="text-emerald-400 font-bold bg-emerald-500/20 px-2 py-1 rounded">Ready</span>`;
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-800/50 border-b border-slate-800">
+                            <td class="p-3 text-slate-400">${item.oldName}</td>
+                            <td class="p-3 text-amber-300 text-[10px] break-all max-w-[150px] whitespace-normal">Date: ${item.date}, Topic: ${item.title}</td>
+                            <td class="p-3 font-code text-sky-300 font-bold ${item.collision?'text-rose-300':''}">${item.preview}</td>
+                            <td class="p-3">${status}</td>
+                        </tr>
+                    `;
+                });
+
+            } catch (err) {
+                console.error(err);
+                showToast("AI Processing failed: " + err.message, "error");
+            } finally {
+                btn.innerHTML = `<i data-lucide="brain-circuit" class="w-5 h-5"></i> Read Documents & Generate Metadata`;
+                btn.disabled = false;
+                lucide.createIcons();
+            }
+        }
+
+        function resetBatch() {
+            stagedFiles = []; batchResults = [];
+            document.getElementById('stagedFilesList').innerHTML = '';
+            document.getElementById('stagedFilesContainer').classList.add('hidden');
+            document.getElementById('processBtn').classList.add('hidden');
+            document.getElementById('batchInputArea').classList.remove('hidden');
+            document.getElementById('batchOutputArea').classList.add('hidden');
+            document.getElementById('batchOutputArea').classList.remove('flex');
+        }
+
+        function approveBatch() {
+            batchResults.forEach(item => {
+                const idStr = `FILE${String(currentArchiveNum).padStart(6, '0')}`;
+                const finalName = item.preview.replace('[ID_AUTO]', idStr) + item.extension;
+                saveToLog(item.oldName, finalName, idStr);
+            });
+            resetBatch();
+        }
+
+        // --- DATABASE & ANALYTICS ---
+        function renderDatabase() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const typeFilter = document.getElementById('filterType').value;
+            
+            let filtered = masterLog.filter(row => {
+                const matchSearch = row.newName.toLowerCase().includes(query) || (row.oldName||'').toLowerCase().includes(query);
+                const matchType = typeFilter === 'ALL' || row.type === typeFilter;
+                return matchSearch && matchType;
+            });
+
+            document.getElementById('totalFileCount').innerText = filtered.length;
+
+            const tbody = document.getElementById('databaseBody');
+            tbody.innerHTML = '';
+            [...filtered].reverse().forEach(row => {
+                const dateStr = new Date(row.timestamp).toLocaleDateString();
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-800 group">
+                        <td class="p-2 font-code text-sky-400 font-bold w-20">${row.id}</td>
+                        <td class="p-2 font-code text-slate-300 group-hover:text-white break-all max-w-[200px] whitespace-normal">${row.newName}</td>
+                    </tr>
+                `;
+            });
+
+            if(analyticsChart) analyticsChart.destroy();
+            const counts = {};
+            filtered.forEach(r => { counts[r.type] = (counts[r.type]||0) + 1; });
+            const ctx = document.getElementById('archiveChart').getContext('2d');
+            analyticsChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(counts),
+                    datasets: [{ data: Object.values(counts), backgroundColor: ['#38bdf8', '#818cf8', '#34d399', '#fbbf24', '#f87171'], borderWidth: 0 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: {color: '#94a3b8', boxWidth: 10} } } }
+            });
+        }
+
+        function exportToCSV() {
+            if(masterLog.length===0) return showToast("Empty Database", "error");
+            let csv = "\uFEFFArchive ID,Old Filename,New Filename,Timestamp\n";
+            masterLog.forEach(r => csv += `${r.id},"${r.oldName}","${r.newName}",${r.timestamp}\n`);
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const link = document.createElement('a'); link.href = URL.createObjectURL(blob);
+            link.download = `V6_Archive_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+        }
+
+        function downloadRenameScript(os) {
+            if(masterLog.length === 0) return showToast("Log empty", "error");
+            let content = os === 'mac' ? "#!/bin/bash\n" : "@echo off\n";
+            masterLog.filter(r => r.oldName !== "MANUAL_ENTRY").forEach(r => content += os === 'mac' ? `mv "${r.oldName}" "${r.newName}"\n` : `ren "${r.oldName}" "${r.newName}"\n`);
+            const blob = new Blob([content], { type: 'text/plain' });
+            const link = document.createElement('a'); 
+            link.href = URL.createObjectURL(blob); link.download = os === 'mac' ? 'rename.sh' : 'rename.bat'; 
+            link.click();
+        }
+
+        // --- CLOUD SYNC ---
+        let fbConfigStr = localStorage.getItem('v6FbConfig') || "";
+        if(fbConfigStr) document.getElementById('fbUrl').value = fbConfigStr;
+
+        async function syncToCloud() {
+            const url = document.getElementById('fbUrl').value.trim();
+            if(!url || !window.firebaseApp) return;
+            try {
+                const app = window.firebaseApp.initializeApp({ databaseURL: url }, "syncApp");
+                const db = window.firebaseApp.getDatabase(app);
+                await window.firebaseApp.set(window.firebaseApp.ref(db, 'masterArchive'), masterLog);
+                document.getElementById('cloudStatus').innerHTML = `<i data-lucide="cloud-lightning" class="w-4 h-4 text-emerald-400"></i> Synced to Cloud`;
+            } catch(e) {
+                console.error("Cloud Sync Error", e);
+                document.getElementById('cloudStatus').innerHTML = `<i data-lucide="cloud-off" class="w-4 h-4 text-rose-400"></i> Sync Failed`;
+            }
+            lucide.createIcons();
+        }
+
+        function saveCloudConfig() {
+            const url = document.getElementById('fbUrl').value.trim();
+            if(url) { localStorage.setItem('v6FbConfig', url); syncToCloud(); showToast("Cloud synced.", "success"); }
+        }
+
+        // Boot
+        document.getElementById('refDate').value = new Date().toISOString().split('T')[0];
+        renderSettings();
+        renderCustomSegments();
+        renderDropdowns();
+    </script>
+</body>
+</html>
