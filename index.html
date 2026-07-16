@@ -237,7 +237,20 @@
             <h2 class="text-lg font-semibold mb-6 border-b border-slate-700 pb-3 flex items-center gap-2 text-slate-200">
                 <i data-lucide="sliders" class="w-5 h-5 text-sky-400"></i> Advanced Taxonomy & Extensibility
             </h2>
-            
+            <!-- API Configuration Injection -->
+<div class="mb-8 p-5 border border-slate-700 rounded-xl bg-slate-900/50">
+    <h3 class="text-sm font-bold text-sky-400 uppercase tracking-wider mb-3">API Configuration</h3>
+    <div>
+        <label class="text-xs font-bold text-slate-400 uppercase">Gemini API Key</label>
+        <div class="flex gap-2 mt-1">
+            <input type="password" id="set-api-key" class="input-dark flex-1" placeholder="Enter Google Gemini API Key...">
+            <button type="button" onclick="commitApiKey()" class="bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors shadow-md">
+                Secure Key
+            </button>
+        </div>
+        <p class="text-[10px] text-slate-500 mt-2">Key encrypts locally to browser storage. Never committed to server.</p>
+    </div>
+</div>
             <div class="bg-indigo-900/30 border border-indigo-500/50 p-4 rounded-xl mb-6">
                 <h3 class="text-sm font-bold text-indigo-300 mb-2">Add Infinite Custom Segments</h3>
                 <p class="text-xs text-indigo-200/70 mb-3">Append an additional parameter (e.g., Bates Number, Geography) to the end of the nomenclature string (before the ID).</p>
@@ -869,6 +882,19 @@
         renderSettings();
         renderCustomSegments();
         renderDropdowns();
+        // Local Storage API Key Commit Protocol
+function commitApiKey() {
+    const keyInput = document.getElementById('set-api-key').value.trim();
+    if (keyInput === "") {
+        alert("Error: API Key field is empty.");
+        return;
+    }
+    // Set the key in local storage matching the V6.2 fetch parameter
+    localStorage.setItem('v6_api_key', keyInput);
+    alert("API Key Successfully Secured in Local Storage.");
+    document.getElementById('set-api-key').value = ""; // Clear visual field for security
+}
+
     </script>
 </body>
 </html>
