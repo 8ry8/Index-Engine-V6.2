@@ -1,0 +1,1772 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<title>Index Engine · Terminal Command Engine v9.1.0.1</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root{
+    --bg:#070b14; --panel:rgba(17,25,40,.78); --stroke:rgba(148,163,184,.18);
+    --sky:#38bdf8; --indigo:#818cf8; --emerald:#34d399; --amber:#fbbf24; --rose:#fb7185;
+    --txt:#e2e8f0; --dim:#94a3b8; --faint:#64748b;
+  }
+  html,body{background:var(--bg);color:var(--txt);}
+  body{
+    font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    margin:0; min-height:100vh; overflow-x:hidden;
+    background-image:
+      radial-gradient(1100px 600px at 12% -8%, rgba(56,189,248,.10), transparent 60%),
+      radial-gradient(900px 520px at 92% 4%, rgba(129,140,248,.10), transparent 62%);
+    background-attachment:fixed;
+  }
+  .mono{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+  .glass{background:var(--panel);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--stroke);}
+  .chip{border:1px solid var(--stroke);border-radius:9999px;padding:.15rem .55rem;font-size:.65rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;}
+  pre.cmd{margin:0;padding:1rem 1.1rem;overflow-x:auto;font-size:.815rem;line-height:1.7;white-space:pre;tab-size:2;}
+  pre.cmd code{font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;}
+  .tok{color:var(--amber);font-weight:700;}
+  .cmt{color:#64748b;font-style:italic;}
+  .scroll::-webkit-scrollbar{width:9px;height:9px;}
+  .scroll::-webkit-scrollbar-track{background:rgba(7,11,20,.6);}
+  .scroll::-webkit-scrollbar-thumb{background:rgba(71,85,105,.75);border-radius:6px;}
+  .scroll::-webkit-scrollbar-thumb:hover{background:rgba(56,189,248,.8);}
+  .step.done{opacity:.5;}
+  .step.done .step-title{text-decoration:line-through;text-decoration-color:var(--emerald);}
+  .fade-in{animation:fi .28s ease both;}
+  @keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .toast{animation:fi .2s ease both;}
+  details>summary{cursor:pointer;list-style:none;}
+  details>summary::-webkit-details-marker{display:none;}
+  .kbd{border:1px solid var(--stroke);border-bottom-width:2px;border-radius:.375rem;padding:.08rem .35rem;font-size:.7rem;}
+  @media print{
+    aside,header .no-print,.no-print{display:none!important;}
+    body{background:#fff;color:#000;}
+    .glass{background:#fff;border-color:#ccc;}
+    pre.cmd{background:#f8fafc!important;color:#000;border:1px solid #ccc;}
+  }
+</style>
+</head>
+<body class="antialiased">
+
+<!-- ══════════════ HEADER ══════════════ -->
+<header class="glass sticky top-0 z-40 px-4 md:px-6 py-3 flex flex-wrap items-center gap-3 md:gap-4">
+  <div class="flex items-center gap-3 mr-auto min-w-0">
+    <div class="w-10 h-10 rounded-xl grid place-items-center shrink-0"
+         style="background:linear-gradient(135deg,rgba(56,189,248,.25),rgba(129,140,248,.25));border:1px solid rgba(56,189,248,.35)">
+      <span class="mono text-sky-300 font-bold text-sm">&gt;_</span>
+    </div>
+    <div class="min-w-0">
+      <h1 class="text-base md:text-lg font-bold leading-tight truncate">Terminal Command Engine</h1>
+      <p class="text-[11px] text-slate-400 leading-tight truncate">Copy-paste directives · Index Engine <span class="mono text-sky-400">v9.1.0.1</span></p>
+    </div>
+  </div>
+
+  <div class="flex items-center gap-2 flex-wrap no-print">
+    <div class="hidden md:flex items-center gap-2 mr-1">
+      <input id="search" type="search" placeholder="Filter steps…  ( / )"
+             class="mono text-xs rounded-lg px-3 py-2 outline-none w-52"
+             style="background:rgba(7,11,20,.7);border:1px solid var(--stroke);color:var(--txt)">
+    </div>
+    <div id="shellToggle" class="flex rounded-lg overflow-hidden" style="border:1px solid var(--stroke)" role="tablist" aria-label="Shell">
+      <button data-shell="unix" class="shell-btn px-3 py-2 text-xs font-bold">bash / zsh</button>
+      <button data-shell="win"  class="shell-btn px-3 py-2 text-xs font-bold">PowerShell</button>
+    </div>
+    <button id="btnCopyRemaining" class="px-3 py-2 rounded-lg text-xs font-bold"
+            style="background:rgba(56,189,248,.15);border:1px solid rgba(56,189,248,.35);color:#7dd3fc">Copy remaining</button>
+    <button id="btnReset" class="px-3 py-2 rounded-lg text-xs font-bold text-rose-300"
+            style="background:rgba(251,113,133,.1);border:1px solid rgba(251,113,133,.3)">Reset recipe</button>
+    <button id="btnPrint" class="px-3 py-2 rounded-lg text-xs font-bold text-slate-300"
+            style="background:rgba(148,163,184,.1);border:1px solid var(--stroke)">Print</button>
+  </div>
+</header>
+
+<!-- ══════════════ LAYOUT ══════════════ -->
+<div class="max-w-[1500px] mx-auto p-4 md:p-6 grid gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
+
+  <!-- SIDEBAR -->
+  <aside class="flex flex-col gap-5 lg:sticky lg:top-[74px] lg:self-start lg:max-h-[calc(100vh-96px)] lg:overflow-y-auto scroll pr-1">
+
+    <!-- Variables -->
+    <section class="glass rounded-2xl p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-xs font-bold uppercase tracking-widest text-sky-400">01 · Parameters</h2>
+        <span class="chip text-slate-400" id="varCount">0</span>
+      </div>
+      <p class="text-[11px] text-slate-400 mb-3 leading-relaxed">
+        Values are interpolated into every command below. Change one and the whole recipe updates live.
+      </p>
+      <div id="varHost" class="space-y-3"></div>
+    </section>
+
+    <!-- Recipes -->
+    <section class="glass rounded-2xl p-3">
+      <h2 class="text-xs font-bold uppercase tracking-widest text-sky-400 px-1 mb-2">02 · Protocol</h2>
+      <nav id="recipeNav" class="flex flex-col gap-1"></nav>
+    </section>
+
+    <section class="glass rounded-2xl p-4 text-[11px] text-slate-400 leading-relaxed">
+      <h2 class="text-xs font-bold uppercase tracking-widest text-sky-400 mb-2">Legend</h2>
+      <ul class="space-y-1.5">
+        <li><span class="mono tok">«NAME»</span> — unresolved parameter</li>
+        <li><span class="mono cmt"># …</span> — comment / explanation</li>
+        <li><span class="mono text-emerald-400">EXPECT</span> — what success looks like</li>
+        <li><span class="mono text-amber-400">VERIFY</span> — proof the step worked</li>
+        <li><span class="mono text-rose-400">RECOVER</span> — what to run if it failed</li>
+      </ul>
+    </section>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="min-w-0 flex flex-col gap-5">
+    <section class="glass rounded-2xl p-5 md:p-6">
+      <div class="flex flex-wrap items-start gap-4">
+        <div id="recipeIcon" class="text-3xl leading-none select-none">🚀</div>
+        <div class="min-w-0 flex-1">
+          <h2 id="recipeName" class="text-xl md:text-2xl font-bold">—</h2>
+          <p id="recipeBlurb" class="text-sm text-slate-400 mt-1"></p>
+          <div id="recipeMeta" class="flex flex-wrap gap-2 mt-3"></div>
+        </div>
+      </div>
+      <div class="mt-5">
+        <div class="flex items-center justify-between text-[11px] font-bold mb-1.5">
+          <span class="text-slate-400 uppercase tracking-widest">Progress</span>
+          <span id="progressLabel" class="mono text-sky-400">0 / 0</span>
+        </div>
+        <div class="h-2 rounded-full overflow-hidden" style="background:rgba(7,11,20,.8);border:1px solid var(--stroke)">
+          <div id="progressBar" class="h-full transition-all duration-300" style="width:0%;background:linear-gradient(90deg,#38bdf8,#818cf8)"></div>
+        </div>
+      </div>
+    </section>
+
+    <div id="stepHost" class="flex flex-col gap-4"></div>
+
+    <section class="glass rounded-2xl p-5 text-xs text-slate-400 leading-relaxed">
+      <strong class="text-slate-200">Invariant.</strong>
+      Every command is emitted verbatim as it must be typed. Parameters are substituted at render time;
+      nothing is executed by this page. Review each block before pasting — <span class="mono text-amber-300">«…»</span>
+      tokens mark unresolved parameters and <strong>must never be pasted literally</strong>.
+    </section>
+  </main>
+</div>
+
+<div id="toasts" class="fixed bottom-5 right-5 z-[100] flex flex-col gap-2 items-end no-print"></div>
+<textarea id="clipboardShim" class="fixed opacity-0 pointer-events-none" style="top:-9999px" aria-hidden="true"></textarea>
+
+<script>
+"use strict";
+/* ════════════════════════════════════════════════════════════════════════
+   TERMINAL COMMAND ENGINE — v9.1.0.1
+   Data-driven directive catalogue. All command bodies are stored as ARRAY
+   OF LINES so that YAML/GitHub-Actions `${{ }}` expressions, backticks and
+   quote characters pass through byte-exact with no template escaping.
+   ════════════════════════════════════════════════════════════════════════ */
+
+var VARIABLES = [
+  { key:'PROJECT',    label:'SPA directory name',  def:'index-engine',                hint:'lowercase-kebab' },
+  { key:'APP_NAME',   label:'Application name',    def:'Index Engine',                hint:'display name' },
+  { key:'GH_USER',    label:'GitHub owner',        def:'8ry8',                        hint:'user or org' },
+  { key:'GH_REPO',    label:'GitHub repository',   def:'Index-Engine-V6.2',           hint:'repo slug' },
+  { key:'BUNDLE_ID',  label:'Bundle / app id',     def:'com.indexengine.archiver',    hint:'reverse-DNS' },
+  { key:'NODE_MAJOR', label:'Node major version',  def:'20',                          hint:'LTS' },
+  { key:'KEY_ALIAS',  label:'Signing key alias',   def:'indexengine',                 hint:'keystore alias' },
+  { key:'TEAM_ID',    label:'Apple Team ID',       def:'ABCDE12345',                  hint:'10-char team id' },
+  { key:'AVD',        label:'Android emulator',    def:'Pixel_8_API_34',              hint:'avdmanager name' }
+];
+
+/* ── Directive catalogue ─────────────────────────────────────────────── */
+var RECIPES = [
+
+/* ══════════════════════ 1. SPA → GITHUB PAGES ══════════════════════ */
+{
+  id:'spa-pages', icon:'🚀', name:'SPA → GitHub Pages',
+  blurb:'Empty working directory to a live HTTPS single-page app with continuous deployment on every push.',
+  tags:['web','ci','deploy','session-3'],
+  steps:[
+  { id:'spa-01', title:'Verify the toolchain',
+    why:'Every later step assumes these three binaries exist and meet a minimum version. Failing here saves an hour of confusing downstream errors.',
+    cmd:{ unix:['node -v','npm -v','git --version'],
+          win: ['node -v','npm -v','git --version'] },
+    expect:'node v20.x or newer · npm 10.x or newer · git 2.40.x or newer',
+    verify:'All three print a version string. A "command not found" / "not recognized" message means that tool is not on PATH.',
+    fail:'Windows: winget install OpenJS.NodeJS.LTS Git.Git\nmacOS:   brew install node@20 git\nLinux:   curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && sudo apt install -y nodejs' },
+
+  { id:'spa-02', title:'Scaffold the application',
+    why:'Vite emits a minimal, fast, dependency-light single-page app with an opinionated dev server and a production bundler.',
+    cmd:{ unix:['npm create vite@latest «PROJECT» -- --template react-ts','cd «PROJECT»','npm install'],
+          win: ['npm create vite@latest «PROJECT» -- --template react-ts','cd «PROJECT»','npm install'] },
+    expect:'Scaffolding project in …/«PROJECT» … then "added N packages" with no ERR! lines.',
+    verify:'`ls` (or `dir`) shows package.json, index.html, src/ and vite.config.ts.',
+    fail:'If npm prompts to install "create-vite", answer y. If the directory already exists, remove it or choose another «PROJECT».' },
+
+  { id:'spa-03', title:'Install Tailwind CSS v4 and state libraries',
+    why:'Tailwind v4 ships as a first-class Vite plugin — no PostCSS config, no tailwind.config.js. Zustand and Dexie cover client state and durable local persistence.',
+    cmd:{ unix:['npm install -D tailwindcss @tailwindcss/vite','npm install zustand dexie'],
+          win: ['npm install -D tailwindcss @tailwindcss/vite','npm install zustand dexie'] },
+    expect:'"added N packages" with 0 vulnerabilities reported.',
+    verify:'grep -c tailwind package.json   →  at least 2 matches.',
+    fail:'On a proxy network set npm config set registry https://registry.npmjs.org/ and retry.' },
+
+  { id:'spa-04', title:'Wire Tailwind and the Pages base path',
+    why:'GitHub Pages serves project sites from a sub-path. Vite must be told the repository name or every asset 404s.',
+    cmd:{ unix:[
+      'cat > vite.config.ts <<\'TS\'',
+      'import { defineConfig } from "vite";',
+      'import react from "@vitejs/plugin-react";',
+      'import tailwindcss from "@tailwindcss/vite";',
+      '',
+      'export default defineConfig({',
+      '  base: "/«GH_REPO»/",',
+      '  plugins: [react(), tailwindcss()],',
+      '  build: { outDir: "dist", sourcemap: false },',
+      '});',
+      'TS',
+      '',
+      'printf \'@import "tailwindcss";\\n\' > src/index.css'],
+      win: [
+      'Set-Content -Encoding utf8 vite.config.ts @\'',
+      'import { defineConfig } from "vite";',
+      'import react from "@vitejs/plugin-react";',
+      'import tailwindcss from "@tailwindcss/vite";',
+      '',
+      'export default defineConfig({',
+      '  base: "/«GH_REPO»/",',
+      '  plugins: [react(), tailwindcss()],',
+      '  build: { outDir: "dist", sourcemap: false },',
+      '});',
+      '\'@',
+      '',
+      'Set-Content -Encoding utf8 src/index.css \'@import "tailwindcss";\''] },
+    expect:'No console output. Both files are rewritten in place.',
+    verify:'The first line of src/index.css is @import "tailwindcss"; and vite.config.ts contains base: "/«GH_REPO»/".',
+    fail:'If `base` is wrong the deployed page loads with a blank screen and 404s in the browser console. Set base to "/" only for a user/organisation site (<user>.github.io).' },
+
+  { id:'spa-05', title:'Run the development server',
+    why:'Confirms the scaffold is healthy before any deployment complexity is introduced.',
+    cmd:{ unix:['npm run dev -- --host 0.0.0.0 --port 5173'],
+          win: ['npm run dev -- --host 0.0.0.0 --port 5173'] },
+    expect:'VITE v7.x ready in NNN ms → Local: http://localhost:5173/',
+    verify:'Open the printed URL. The Vite + React welcome page renders. Stop the server with Ctrl+C before continuing.',
+    fail:'Port 5173 already in use → pass --port 5174. Host binding fails behind a sandbox → drop --host and use localhost only.' },
+
+  { id:'spa-06', title:'Initialise version control',
+    why:'Pages deployment is driven entirely by pushes to a tracked branch.',
+    cmd:{ unix:['git init -b main','git add -A','git commit -m "feat: scaffold Index Engine SPA"'],
+          win: ['git init -b main','git add -A','git commit -m "feat: scaffold Index Engine SPA"'] },
+    expect:'[main (root-commit) abc1234] feat: scaffold Index Engine SPA — N files changed.',
+    verify:'`git log --oneline` shows exactly one commit; `git status` reports a clean tree.',
+    fail:'"Author identity unknown" → git config --global user.name "Your Name" && git config --global user.email "you@example.com"' },
+
+  { id:'spa-07', title:'Create the remote repository',
+    why:'The GitHub CLI authenticates once and provisions the remote plus the push URL in a single call.',
+    cmd:{ unix:['gh auth status','gh repo create «GH_USER»/«GH_REPO» --public --source=. --remote=origin --push'],
+          win: ['gh auth status','gh repo create «GH_USER»/«GH_REPO» --public --source=. --remote=origin --push'] },
+    expect:'✓ Logged in to github.com … ✓ Created repository «GH_USER»/«GH_REPO» … branch main set up to track origin/main.',
+    verify:'gh repo view «GH_USER»/«GH_REPO» --web opens the repository in a browser.',
+    fail:'"gh: command not found" → install the GitHub CLI (brew install gh / winget install GitHub.cli) then `gh auth login`. If the repo already exists, use `git remote add origin https://github.com/«GH_USER»/«GH_REPO».git && git push -u origin main`.' },
+
+  { id:'spa-08', title:'Add the Pages deployment workflow',
+    why:'A workflow file is the only reliable deploy mechanism. Branch-based pages deployment via gh-pages is fragile and pollutes history with build artefacts.',
+    cmd:{ unix:[
+      'mkdir -p .github/workflows',
+      'cat > .github/workflows/pages.yml <<\'YAML\'',
+      'name: Deploy SPA to Pages',
+      'on:',
+      '  push:',
+      '    branches: [main]',
+      '  workflow_dispatch:',
+      'permissions:',
+      '  contents: read',
+      '  pages: write',
+      '  id-token: write',
+      'concurrency:',
+      '  group: pages',
+      '  cancel-in-progress: false',
+      'jobs:',
+      '  build:',
+      '    runs-on: ubuntu-latest',
+      '    steps:',
+      '      - uses: actions/checkout@v4',
+      '      - uses: actions/setup-node@v4',
+      '        with:',
+      '          node-version: \'«NODE_MAJOR»\'',
+      '          cache: npm',
+      '      - run: npm ci',
+      '      - run: npm run build',
+      '      - uses: actions/configure-pages@v5',
+      '      - uses: actions/upload-pages-artifact@v3',
+      '        with:',
+      '          path: dist',
+      '  deploy:',
+      '    needs: build',
+      '    environment:',
+      '      name: github-pages',
+      '      url: ${{ steps.deployment.outputs.page_url }}',
+      '    runs-on: ubuntu-latest',
+      '    steps:',
+      '      - id: deployment',
+      '        uses: actions/deploy-pages@v4',
+      'YAML',
+      'git add .github/workflows/pages.yml',
+      'git commit -m "ci: deploy SPA to GitHub Pages"',
+      'git push'],
+      win: [
+      'New-Item -ItemType Directory -Force -Path .github/workflows | Out-Null',
+      'Set-Content -Encoding utf8 .github/workflows/pages.yml @\'',
+      'name: Deploy SPA to Pages',
+      'on:',
+      '  push:',
+      '    branches: [main]',
+      '  workflow_dispatch:',
+      'permissions:',
+      '  contents: read',
+      '  pages: write',
+      '  id-token: write',
+      'concurrency:',
+      '  group: pages',
+      '  cancel-in-progress: false',
+      'jobs:',
+      '  build:',
+      '    runs-on: ubuntu-latest',
+      '    steps:',
+      '      - uses: actions/checkout@v4',
+      '      - uses: actions/setup-node@v4',
+      '        with:',
+      '          node-version: \'«NODE_MAJOR»\'',
+      '          cache: npm',
+      '      - run: npm ci',
+      '      - run: npm run build',
+      '      - uses: actions/configure-pages@v5',
+      '      - uses: actions/upload-pages-artifact@v3',
+      '        with:',
+      '          path: dist',
+      '  deploy:',
+      '    needs: build',
+      '    environment:',
+      '      name: github-pages',
+      '      url: ${{ steps.deployment.outputs.page_url }}',
+      '    runs-on: ubuntu-latest',
+      '    steps:',
+      '      - id: deployment',
+      '        uses: actions/deploy-pages@v4',
+      '\'@',
+      'git add .github/workflows/pages.yml',
+      'git commit -m "ci: deploy SPA to GitHub Pages"',
+      'git push'] },
+    expect:'Push succeeds; "remote: … main -> main".',
+    verify:'gh run list --workflow pages.yml --limit 1 shows a completed, successful run.',
+    fail:'If the workflow is rejected with "pages: write" permission errors, enable Settings → Pages → Source: GitHub Actions in the repository UI.' },
+
+  { id:'spa-09', title:'Grant the workflow Pages permission',
+    why:'The id-token: write permission only takes effect once the repository has Pages enabled with Actions as the source.',
+    cmd:{ unix:['gh api -X POST repos/«GH_USER»/«GH_REPO»/pages -f build_type=workflow || echo "Pages already configured"'],
+          win: ['gh api -X POST repos/«GH_USER»/«GH_REPO»/pages -f build_type=workflow; if ($LASTEXITCODE -ne 0) { "Pages already configured" }'] },
+    expect:'A JSON payload containing "build_type": "workflow", or the fallback message.',
+    verify:'gh api repos/«GH_USER»/«GH_REPO»/pages --jq .html_url prints the expected site URL.',
+    fail:'HTTP 409 means Pages is already enabled — harmless. HTTP 403 means the token lacks the pages scope: run `gh auth refresh -s pages`.' },
+
+  { id:'spa-10', title:'Verify the live deployment',
+    why:'The final proof is an HTTP 200 from the published origin, not a green check mark.',
+    cmd:{ unix:['gh run list --workflow pages.yml --limit 3','curl -sS -o /dev/null -w "HTTP %{http_code}\\n" https://«GH_USER».github.io/«GH_REPO»/'],
+          win: ['gh run list --workflow pages.yml --limit 3','(Invoke-WebRequest -Method Head https://«GH_USER».github.io/«GH_REPO»/).StatusCode'] },
+    expect:'A completed/success run entry and the response "HTTP 200" (or the integer 200).',
+    verify:'Open https://«GH_USER».github.io/«GH_REPO»/ in a browser — the SPA renders and the devtools console reports no 404s.',
+    fail:'Blank page + 404s in console → the Vite `base` does not match the repository name (see step 04). Re-run `npm run build` and push.' }
+  ]
+},
+
+/* ══════════════════════ 2. LOCAL DEV + PWA ══════════════════════ */
+{
+  id:'spa-local', icon:'⚡', name:'Local Dev & PWA',
+  blurb:'Deterministic local environment, offline capability, installability and a performance budget.',
+  tags:['web','pwa','session-3'],
+  steps:[
+  { id:'loc-01', title:'Pin the runtime',
+    why:'An un-pinned Node version is the single most common cause of "works on my machine" divergence.',
+    cmd:{ unix:['printf \'«NODE_MAJOR»\\n\' > .nvmrc','nvm install && nvm use'],
+          win: ['Set-Content -Encoding utf8 .nvmrc \'«NODE_MAJOR»\'','nvm install «NODE_MAJOR»; nvm use «NODE_MAJOR»'] },
+    expect:'nvm prints "Now using node v«NODE_MAJOR».x.x".',
+    verify:'node -v matches the value in .nvmrc; `.nvmrc` is committed.',
+    fail:'nvm not installed → macOS/Linux: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash. Windows: install nvm-windows from github.com/coreybutler/nvm-windows/releases.' },
+
+  { id:'loc-02', title:'Install the PWA plugin and manifest',
+    why:'Offline operation is a hard requirement for a client-side archiver used in courtrooms and depositions without reliable connectivity.',
+    cmd:{ unix:['npm install -D vite-plugin-pwa'],
+          win: ['npm install -D vite-plugin-pwa'] },
+    expect:'"added N packages".',
+    verify:'vite-plugin-pwa appears in package.json under devDependencies.',
+    fail:'Peer-dependency conflict → npm install -D vite-plugin-pwa --legacy-peer-deps' },
+
+  { id:'loc-03', title:'Register the service worker',
+    why:'The service worker caches the app shell so the SPA cold-starts with no network.',
+    cmd:{ unix:[
+      'cat >> vite.config.ts <<\'TS\'',
+      'TS',
+      'cat > src/pwa.ts <<\'TS\'',
+      'import { registerSW } from "virtual:pwa-register";',
+      '',
+      'export const updateSW = registerSW({',
+      '  immediate: true,',
+      '  onNeedRefresh() { console.info("[pwa] update available"); },',
+      '  onOfflineReady() { console.info("[pwa] offline ready"); },',
+      '});',
+      'TS'],
+      win: [
+      'Set-Content -Encoding utf8 src/pwa.ts @\'',
+      'import { registerSW } from "virtual:pwa-register";',
+      '',
+      'export const updateSW = registerSW({',
+      '  immediate: true,',
+      '  onNeedRefresh() { console.info("[pwa] update available"); },',
+      '  onOfflineReady() { console.info("[pwa] offline ready"); },',
+      '});',
+      '\'@'] },
+    expect:'src/pwa.ts is created.',
+    verify:'`import "./pwa";` added to src/main.tsx, then `npm run build` emits sw.js and workbox-*.js into dist/.',
+    fail:'TypeScript cannot resolve "virtual:pwa-register" → add "vite-plugin-pwa/client" to compilerOptions.types in tsconfig.json.' },
+
+  { id:'loc-04', title:'Add the web manifest',
+    why:'Installability on Android and iOS requires a manifest with 192 px and 512 px icons plus a maskable variant.',
+    cmd:{ unix:['mkdir -p public','cat > public/manifest.webmanifest <<\'JSON\'',
+      '{',
+      '  "name": "«APP_NAME»",',
+      '  "short_name": "«APP_NAME»",',
+      '  "start_url": "/«GH_REPO»/",',
+      '  "scope": "/«GH_REPO»/",',
+      '  "display": "standalone",',
+      '  "background_color": "#070b14",',
+      '  "theme_color": "#0f172a",',
+      '  "icons": [',
+      '    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },',
+      '    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },',
+      '    { "src": "icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }',
+      '  ]',
+      '}',
+      'JSON'],
+      win:['New-Item -ItemType Directory -Force -Path public | Out-Null',
+      'Set-Content -Encoding utf8 public/manifest.webmanifest @\'',
+      '{',
+      '  "name": "«APP_NAME»",',
+      '  "short_name": "«APP_NAME»",',
+      '  "start_url": "/«GH_REPO»/",',
+      '  "scope": "/«GH_REPO»/",',
+      '  "display": "standalone",',
+      '  "background_color": "#070b14",',
+      '  "theme_color": "#0f172a",',
+      '  "icons": [',
+      '    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },',
+      '    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },',
+      '    { "src": "icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }',
+      '  ]',
+      '}',
+      '\'@'] },
+    expect:'public/manifest.webmanifest exists and is valid JSON.',
+    verify:'node -e "JSON.parse(require(\'fs\').readFileSync(\'public/manifest.webmanifest\',\'utf8\')); console.log(\'valid\')" prints valid.',
+    fail:'start_url must include the repository sub-path, otherwise the installed app opens to a 404.' },
+
+  { id:'loc-05', title:'Install Playwright and run a smoke test',
+    why:'A headless assertion that the SPA boots is the cheapest possible regression guard for CI.',
+    cmd:{ unix:['npm install -D @playwright/test','npx playwright install --with-deps chromium'],
+          win: ['npm install -D @playwright/test','npx playwright install chromium'] },
+    expect:'Playwright downloads Chromium and its host dependencies.',
+    verify:'npx playwright --version prints a version.',
+    fail:'Linux sandbox errors → the --with-deps flag requires sudo. Run `sudo npx playwright install-deps` separately.' },
+
+  { id:'loc-06', title:'Measure the bundle against the budget',
+    why:'A client-side archiver must cold-start on a modest machine. The budget is a hard gate: 180 kB gzipped JavaScript.',
+    cmd:{ unix:['npm run build','npm install -D vite-bundle-visualizer','npx vite-bundle-visualizer --open=false || true','du -sh dist'],
+          win: ['npm run build','npm install -D vite-bundle-visualizer','npx vite-bundle-visualizer --open=false','Get-ChildItem dist -Recurse | Measure-Object -Property Length -Sum'] },
+    expect:'dist/ is emitted; the gzipped JavaScript total is under the 180 kB budget.',
+    verify:'Compare the "gzip" column of the build report against 180 kB. The largest chunk should be the framework vendor chunk.',
+    fail:'Over budget → code-split the AI ingestion module with `const m = await import("./ingest")` so it is excluded from the initial payload.' },
+
+  { id:'loc-07', title:'Serve the production build locally',
+    why:'The dev server masks caching, base-path and service-worker bugs. Only a real static server proves production behaviour.',
+    cmd:{ unix:['npx vite preview --port 4173 --host 0.0.0.0'],
+          win: ['npx vite preview --port 4173 --host 0.0.0.0'] },
+    expect:'➜ Local: http://localhost:4173/«GH_REPO»/',
+    verify:'Load the URL, then toggle DevTools → Network → Offline and reload. The app still boots from the service-worker cache.',
+    fail:'A stale service worker serves an old build → DevTools → Application → Service Workers → Unregister, then hard-reload.' }
+  ]
+},
+
+/* ══════════════════════ 3. ANDROID · CAPACITOR ══════════════════════ */
+{
+  id:'android-capacitor', icon:'🤖', name:'Android · Capacitor',
+  blurb:'Wrap the existing SPA into a signed, Play-Store-ready Android App Bundle using a native WebView shell.',
+  tags:['android','capacitor','session-5'],
+  steps:[
+  { id:'and-01', title:'Verify the Android toolchain',
+    why:'The Gradle build will fail opaquely if the JDK or SDK is missing or mis-matched.',
+    cmd:{ unix:['java -version','echo $ANDROID_HOME','sdkmanager --list_installed || true'],
+          win: ['java -version','echo $env:ANDROID_HOME','sdkmanager --list_installed'] },
+    expect:'openjdk 17.x (Capacitor 6/7 require JDK 17) · ANDROID_HOME pointing at an SDK installation.',
+    verify:'$ANDROID_HOME/platform-tools/adb and $ANDROID_HOME/build-tools exist.',
+    fail:'Install Android Studio, then set ANDROID_HOME to ~/Android/Sdk (Linux), ~/Library/Android/sdk (macOS) or %LOCALAPPDATA%\\Android\\Sdk (Windows) and add platform-tools to PATH.' },
+
+  { id:'and-02', title:'Install Capacitor and add the Android platform',
+    why:'Capacitor copies the built web assets into a native Gradle project — one codebase, two signed binaries.',
+    cmd:{ unix:['npm install @capacitor/core @capacitor/cli @capacitor/android',
+                'npx cap init "«APP_NAME»" "«BUNDLE_ID»" --web-dir=dist',
+                'npx cap add android'],
+          win: ['npm install @capacitor/core @capacitor/cli @capacitor/android',
+                'npx cap init "«APP_NAME»" "«BUNDLE_ID»" --web-dir=dist',
+                'npx cap add android'] },
+    expect:'✔ Adding native android project … ✔ add in NNNms',
+    verify:'An android/ directory exists containing build.gradle, settings.gradle and app/ with AndroidManifest.xml.',
+    fail:'"webDir does not exist" → run `npm run build` first so dist/ is present.' },
+
+  { id:'and-03', title:'Build web assets and sync into the native project',
+    why:'capacitor sync performs three operations: copy web assets, update native plugins, update native dependencies. Skipping it ships a stale UI.',
+    cmd:{ unix:['npm run build','npx cap sync android'],
+          win: ['npm run build','npx cap sync android'] },
+    expect:'✔ Copying web assets … ✔ Updating Android plugins … ✔ sync finished',
+    verify:'android/app/src/main/assets/public/index.html exists.',
+    fail:'Plugin version skew → npx cap doctor android reports each plugin\'s expected vs installed version.' },
+
+  { id:'and-04', title:'Generate a release signing keystore',
+    why:'Google Play refuses unsigned bundles. The keystore is the permanent identity of the app — losing it permanently prevents updates.',
+    cmd:{ unix:['keytool -genkeypair -v \\',
+      '  -keystore «PROJECT»-release.keystore \\',
+      '  -alias «KEY_ALIAS» \\',
+      '  -keyalg RSA -keysize 2048 -validity 10000'],
+          win: ['keytool -genkeypair -v `',
+      '  -keystore «PROJECT»-release.keystore `',
+      '  -alias «KEY_ALIAS» `',
+      '  -keyalg RSA -keysize 2048 -validity 10000'] },
+    expect:'Generating 2,048 bit RSA key pair and self-signed certificate (SHA384withRSA) with a validity of 10,000 days.',
+    verify:'keytool -list -v -keystore «PROJECT»-release.keystore -alias «KEY_ALIAS» prints the certificate fingerprint.',
+    fail:'"keytool: command not found" → the JDK bin directory is not on PATH. Locate it with `echo $JAVA_HOME`.',
+    warn:'**Invariant.** Back up this file and its password offline. Play App Signing can recover a *lost key* only if you enrolled in it before the first upload.' },
+
+  { id:'and-05', title:'Wire the signing config into Gradle',
+    why:'Credentials must never be committed. They are read from a git-ignored properties file at build time.',
+    cmd:{ unix:['cat > android/keystore.properties <<\'PROPS\'',
+      'storeFile=../«PROJECT»-release.keystore',
+      'storePassword=CHANGE_ME',
+      'keyAlias=«KEY_ALIAS»',
+      'keyPassword=CHANGE_ME',
+      'PROPS',
+      'printf \'android/keystore.properties\\n*.keystore\\n*.jks\\n\' >> .gitignore'],
+      win:['Set-Content -Encoding utf8 android/keystore.properties @\'',
+      'storeFile=../«PROJECT»-release.keystore',
+      'storePassword=CHANGE_ME',
+      'keyAlias=«KEY_ALIAS»',
+      'keyPassword=CHANGE_ME',
+      '\'@',
+      'Add-Content .gitignore "android/keystore.properties`n*.keystore`n*.jks"'] },
+    expect:'android/keystore.properties is written; .gitignore gains three entries.',
+    verify:'git status does not list keystore.properties or any .keystore file as untracked.',
+    fail:'If git still shows the keystore, it was already tracked → git rm --cached «PROJECT»-release.keystore' },
+
+  { id:'and-06', title:'Build a debug APK and install it',
+    why:'A debug build proves the Gradle project compiles and the WebView renders before signing complexity is added.',
+    cmd:{ unix:['cd android && ./gradlew assembleDebug && cd ..',
+                'adb devices',
+                'adb install -r android/app/build/outputs/apk/debug/app-debug.apk'],
+          win: ['cd android; .\\gradlew.bat assembleDebug; cd ..',
+                'adb devices',
+                'adb install -r android/app/build/outputs/apk/debug/app-debug.apk'] },
+    expect:'BUILD SUCCESSFUL in Ns · adb reports "Success".',
+    verify:'The app icon appears on the launcher and the SPA renders inside the shell.',
+    fail:'"adb: no devices/emulators found" → start an emulator: emulator -avd «AVD» (list with `emulator -list-avds`).' },
+
+  { id:'and-07', title:'Build the signed release App Bundle',
+    why:'Google Play accepts only .aab for new submissions. The bundle defers density and ABI splitting to the store.',
+    cmd:{ unix:['cd android && ./gradlew bundleRelease && cd ..',
+                'ls -lh android/app/build/outputs/bundle/release/'],
+          win: ['cd android; .\\gradlew.bat bundleRelease; cd ..',
+                'Get-ChildItem android/app/build/outputs/bundle/release/'] },
+    expect:'BUILD SUCCESSFUL · app-release.aab is present.',
+    verify:'bundletool validate --bundle=android/app/build/outputs/bundle/release/app-release.aab',
+    fail:'"Keystore was tampered with, or password was incorrect" → the storePassword/keyPassword in keystore.properties do not match the keystore.' },
+
+  { id:'and-08', title:'Verify the signature cryptographically',
+    why:'A bundle that builds is not necessarily correctly signed. Verify before uploading.',
+    cmd:{ unix:['jarsigner -verify -verbose -certs android/app/build/outputs/bundle/release/app-release.aab | tail -5'],
+          win: ['jarsigner -verify -verbose -certs android/app/build/outputs/bundle/release/app-release.aab | Select-Object -Last 5'] },
+    expect:'jar verified.',
+    verify:'The reported certificate CN matches the distinguished name entered when the keystore was created.',
+    fail:'"jar is unsigned" → the signingConfig block is not referenced from buildTypes.release in android/app/build.gradle.' },
+
+  { id:'and-09', title:'Upload to Play Console internal testing',
+    why:'Internal testing gives a resolvable install link in minutes with no review delay.',
+    cmd:{ unix:['gh release create android-v0.1.0 android/app/build/outputs/bundle/release/app-release.aab \\',
+      '  --title "«APP_NAME» Android v0.1.0" --notes "Initial signed App Bundle."'],
+          win: ['gh release create android-v0.1.0 android/app/build/outputs/bundle/release/app-release.aab `',
+      '  --title "«APP_NAME» Android v0.1.0" --notes "Initial signed App Bundle."'] },
+    expect:'A release URL is printed.',
+    verify:'Download the asset back and confirm its SHA-256 matches: sha256sum app-release.aab (Windows: Get-FileHash -Algorithm SHA256).',
+    fail:'For automated uploads use the Google Play Developer API with a service account and the `r0adkll/upload-google-play` action.' }
+  ]
+},
+
+/* ══════════════════════ 4. ANDROID · NATIVE ══════════════════════ */
+{
+  id:'android-native', icon:'📱', name:'Android · Kotlin + Compose',
+  blurb:'A fully native Android client with Room persistence, SAF file access and an encrypted API-key vault.',
+  tags:['android','kotlin','session-5'],
+  steps:[
+  { id:'nat-01', title:'Scaffold the Gradle project',
+    why:'A deterministic, scriptable scaffold avoids the Android Studio wizard and is reproducible in CI.',
+    cmd:{ unix:['mkdir -p «PROJECT»-android/app/src/main/java && cd «PROJECT»-android',
+      'gradle init --type basic --dsl kotlin --project-name «PROJECT»-android'],
+          win:['New-Item -ItemType Directory -Force -Path «PROJECT»-android/app/src/main/java | Out-Null',
+      'cd «PROJECT»-android',
+      'gradle init --type basic --dsl kotlin --project-name «PROJECT»-android'] },
+    expect:'BUILD SUCCESSFUL; settings.gradle.kts and build.gradle.kts are created.',
+    verify:'./gradlew tasks completes without configuration errors.',
+    fail:'Gradle not installed → use the wrapper once available, or `brew install gradle` / `choco install gradle`.' },
+
+  { id:'nat-02', title:'Declare the dependency surface',
+    why:'Room, Compose, WorkManager and the encrypted-preferences library cover persistence, UI, background ingestion and secret storage.',
+    cmd:{ unix:['cat > app/build.gradle.kts <<\'KTS\'',
+      'plugins {',
+      '  id("com.android.application")',
+      '  id("org.jetbrains.kotlin.android")',
+      '  id("com.google.devtools.ksp")',
+      '}',
+      'android {',
+      '  namespace = "«BUNDLE_ID»"',
+      '  compileSdk = 35',
+      '  defaultConfig {',
+      '    applicationId = "«BUNDLE_ID»"',
+      '    minSdk = 26',
+      '    targetSdk = 35',
+      '    versionCode = 1',
+      '    versionName = "0.1.0"',
+      '  }',
+      '  buildFeatures { compose = true }',
+      '  kotlinOptions { jvmTarget = "17" }',
+      '}',
+      'dependencies {',
+      '  implementation("androidx.compose.material3:material3:1.3.0")',
+      '  implementation("androidx.compose.ui:ui-tooling-preview:1.7.5")',
+      '  implementation("androidx.activity:activity-compose:1.9.3")',
+      '  implementation("androidx.room:room-runtime:2.6.1")',
+      '  implementation("androidx.room:room-ktx:2.6.1")',
+      '  ksp("androidx.room:room-compiler:2.6.1")',
+      '  implementation("androidx.work:work-runtime-ktx:2.10.0")',
+      '  implementation("androidx.security:security-crypto:1.1.0-alpha06")',
+      '  implementation("androidx.documentfile:documentfile:1.0.1")',
+      '}',
+      'KTS'],
+      win:['Set-Content -Encoding utf8 app/build.gradle.kts @\'',
+      'plugins {',
+      '  id("com.android.application")',
+      '  id("org.jetbrains.kotlin.android")',
+      '  id("com.google.devtools.ksp")',
+      '}',
+      'android {',
+      '  namespace = "«BUNDLE_ID»"',
+      '  compileSdk = 35',
+      '  defaultConfig {',
+      '    applicationId = "«BUNDLE_ID»"',
+      '    minSdk = 26',
+      '    targetSdk = 35',
+      '    versionCode = 1',
+      '    versionName = "0.1.0"',
+      '  }',
+      '  buildFeatures { compose = true }',
+      '  kotlinOptions { jvmTarget = "17" }',
+      '}',
+      'dependencies {',
+      '  implementation("androidx.compose.material3:material3:1.3.0")',
+      '  implementation("androidx.activity:activity-compose:1.9.3")',
+      '  implementation("androidx.room:room-runtime:2.6.1")',
+      '  implementation("androidx.room:room-ktx:2.6.1")',
+      '  ksp("androidx.room:room-compiler:2.6.1")',
+      '  implementation("androidx.work:work-runtime-ktx:2.10.0")',
+      '  implementation("androidx.security:security-crypto:1.1.0-alpha06")',
+      '}',
+      '\'@'] },
+    expect:'The file is replaced with no diagnostics.',
+    verify:'./gradlew :app:dependencies --configuration releaseRuntimeClasspath resolves every coordinate.',
+    fail:'KSP version must match the Kotlin version exactly; mismatch produces "ksp is not compatible with kotlin".' },
+
+  { id:'nat-03', title:'Register permissions in the manifest',
+    why:'Scope is a hard requirement — a legal-archiving tool must request the minimum surface.',
+    cmd:{ unix:['cat > app/src/main/AndroidManifest.xml <<\'XML\'',
+      '<?xml version="1.0" encoding="utf-8"?>',
+      '<manifest xmlns:android="http://schemas.android.com/apk/res/android">',
+      '  <uses-permission android:name="android.permission.INTERNET" />',
+      '  <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />',
+      '  <application',
+      '      android:label="«APP_NAME»"',
+      '      android:allowBackup="false"',
+      '      android:dataExtractionRules="@xml/data_extraction_rules"',
+      '      android:theme="@style/Theme.Material3.DayNight.NoActionBar">',
+      '    <activity',
+      '        android:name=".MainActivity"',
+      '        android:exported="true"',
+      '        android:windowSoftInputMode="adjustResize">',
+      '      <intent-filter>',
+      '        <action android:name="android.intent.action.MAIN" />',
+      '        <category android:name="android.intent.category.LAUNCHER" />',
+      '      </intent-filter>',
+      '    </activity>',
+      '  </application>',
+      '</manifest>',
+      'XML'],
+      win:['Set-Content -Encoding utf8 app/src/main/AndroidManifest.xml @\'',
+      '<?xml version="1.0" encoding="utf-8"?>',
+      '<manifest xmlns:android="http://schemas.android.com/apk/res/android">',
+      '  <uses-permission android:name="android.permission.INTERNET" />',
+      '  <application',
+      '      android:label="«APP_NAME»"',
+      '      android:allowBackup="false"',
+      '      android:theme="@style/Theme.Material3.DayNight.NoActionBar">',
+      '    <activity android:name=".MainActivity" android:exported="true">',
+      '      <intent-filter>',
+      '        <action android:name="android.intent.action.MAIN" />',
+      '        <category android:name="android.intent.category.LAUNCHER" />',
+      '      </intent-filter>',
+      '    </activity>',
+      '  </application>',
+      '</manifest>',
+      '\'@'] },
+    expect:'The manifest is written.',
+    verify:'Android Studio\'s merged-manifest view (app/build/intermediates/merged_manifests/) shows only the declared permissions.',
+    fail:'**Invariant.** `android:allowBackup="false"` is mandatory: Android Auto Backup would otherwise exfiltrate the ledger to Google Drive.' },
+
+  { id:'nat-04', title:'Define the Room ledger entity and DAO',
+    why:'A native client must persist the same append-only ledger semantics as the web build, with the ID allocated as max+1 inside a transaction.',
+    cmd:{ unix:['mkdir -p app/src/main/java/ledger',
+      'cat > app/src/main/java/ledger/Ledger.kt <<\'KT\'',
+      'package ledger',
+      '',
+      'import androidx.room.*',
+      '',
+      '@Entity(tableName = "ledger", indices = [Index(value = ["archiveId"], unique = true)])',
+      'data class LedgerRow(',
+      '  @PrimaryKey(autoGenerate = true) val id: Long = 0,',
+      '  val archiveId: String,',
+      '  val oldName: String,',
+      '  val newName: String,',
+      '  val type: String,',
+      '  val timestamp: Long,',
+      '  val prevHash: String,',
+      '  val hash: String,',
+      ')',
+      '',
+      '@Dao',
+      'interface LedgerDao {',
+      '  @Query("SELECT COALESCE(MAX(CAST(SUBSTR(archiveId, 5) AS INTEGER)), 0) FROM ledger")',
+      '  suspend fun maxSequence(): Int',
+      '',
+      '  @Query("SELECT * FROM ledger ORDER BY timestamp DESC")',
+      '  suspend fun all(): List<LedgerRow>',
+      '',
+      '  @Insert(onConflict = OnConflictStrategy.ABORT)',
+      '  suspend fun insert(row: LedgerRow): Long',
+      '',
+      '  @Transaction',
+      '  suspend fun append(build: (String) -> LedgerRow) {',
+      '    val next = "FILE%06d".format(maxSequence() + 1)',
+      '    insert(build(next))',
+      '  }',
+      '}',
+      '',
+      '@Database(entities = [LedgerRow::class], version = 1, exportSchema = true)',
+      'abstract class LedgerDb : RoomDatabase() { abstract fun ledger(): LedgerDao }',
+      'KT'],
+      win:['New-Item -ItemType Directory -Force -Path app/src/main/java/ledger | Out-Null',
+      'Set-Content -Encoding utf8 app/src/main/java/ledger/Ledger.kt @\'',
+      'package ledger',
+      '',
+      'import androidx.room.*',
+      '',
+      '@Entity(tableName = "ledger", indices = [Index(value = ["archiveId"], unique = true)])',
+      'data class LedgerRow(',
+      '  @PrimaryKey(autoGenerate = true) val id: Long = 0,',
+      '  val archiveId: String,',
+      '  val oldName: String,',
+      '  val newName: String,',
+      '  val type: String,',
+      '  val timestamp: Long,',
+      '  val prevHash: String,',
+      '  val hash: String,',
+      ')',
+      '\'@'] },
+    expect:'Ledger.kt is created with no syntax errors.',
+    verify:'./gradlew :app:kspDebugKotlin generates LedgerDb_Impl.kt with no warnings about missing columns.',
+    fail:'`SUBSTR(archiveId, 5)` assumes the FILE prefix is exactly four characters. Any format change must be accompanied by a schema migration.' },
+
+  { id:'nat-05', title:'Store the API key in EncryptedSharedPreferences',
+    why:'Plain SharedPreferences is world-readable on a rooted device, and the ledger is privileged material.',
+    cmd:{ unix:['cat > app/src/main/java/ledger/KeyVault.kt <<\'KT\'',
+      'package ledger',
+      '',
+      'import android.content.Context',
+      'import androidx.security.crypto.EncryptedSharedPreferences',
+      'import androidx.security.crypto.MasterKey',
+      '',
+      'class KeyVault(context: Context) {',
+      '  private val prefs = EncryptedSharedPreferences.create(',
+      '    context,',
+      '    "index_engine_vault",',
+      '    MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),',
+      '    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,',
+      '    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,',
+      '  )',
+      '',
+      '  fun put(name: String, value: String) = prefs.edit().putString(name, value).apply()',
+      '  fun get(name: String): String? = prefs.getString(name, null)',
+      '  fun clear(name: String) = prefs.edit().remove(name).apply()',
+      '}',
+      'KT'],
+      win:['Set-Content -Encoding utf8 app/src/main/java/ledger/KeyVault.kt @\'',
+      'package ledger',
+      '',
+      'import android.content.Context',
+      'import androidx.security.crypto.EncryptedSharedPreferences',
+      'import androidx.security.crypto.MasterKey',
+      '',
+      'class KeyVault(context: Context) {',
+      '  private val prefs = EncryptedSharedPreferences.create(',
+      '    context, "index_engine_vault",',
+      '    MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),',
+      '    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,',
+      '    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM)',
+      '  fun put(name: String, value: String) = prefs.edit().putString(name, value).apply()',
+      '  fun get(name: String): String? = prefs.getString(name, null)',
+      '  fun clear(name: String) = prefs.edit().remove(name).apply()',
+      '}',
+      '\'@'] },
+    expect:'KeyVault.kt is created.',
+    verify:'The vault keys are hardware-backed: adb shell dumpsys keystore shows the "index_engine_vault" entry.',
+    fail:'On API < 23 EncryptedSharedPreferences is unavailable — minSdk 26 (Android 8.0) is therefore a hard floor.' },
+
+  { id:'nat-06', title:'Build and unit-test',
+    why:'A green instrumented build is the acceptance gate for the native track.',
+    cmd:{ unix:['./gradlew :app:assembleDebug :app:testDebugUnitTest'],
+          win: ['./gradlew.bat :app:assembleDebug :app:testDebugUnitTest'] },
+    expect:'BUILD SUCCESSFUL · app/build/reports/tests/testDebugUnitTest/index.html is generated.',
+    verify:'The HTML test report shows zero failures.',
+    fail:'OutOfMemory in KSP → raise org.gradle.jvmargs=-Xmx4g in gradle.properties.' },
+
+  { id:'nat-07', title:'Install on a physical device over adb',
+    why:'Emulators mask storage and camera behaviour that the ingestion path depends on.',
+    cmd:{ unix:['adb devices -l','adb install -r app/build/outputs/apk/debug/app-debug.apk','adb shell am start -n «BUNDLE_ID»/.MainActivity'],
+          win: ['adb devices -l','adb install -r app/build/outputs/apk/debug/app-debug.apk','adb shell am start -n «BUNDLE_ID»/.MainActivity'] },
+    expect:'Success · Starting: Intent { cmp=«BUNDLE_ID»/.MainActivity }',
+    verify:'logcat filtered to the app tag shows the ledger database opening with no SQLiteException.',
+    fail:'INSTALL_FAILED_UPDATE_INCOMPATIBLE → adb uninstall «BUNDLE_ID» then reinstall.' },
+
+  { id:'nat-08', title:'Produce the signed release artifact',
+    why:'Reuses the keystore and Gradle signing configuration created in the Capacitor protocol.',
+    cmd:{ unix:['./gradlew :app:bundleRelease','bundletool build-apks --bundle=app/build/outputs/bundle/release/app-release.aab --output=app.apks --ks=«PROJECT»-release.keystore --ks-key-alias=«KEY_ALIAS»'],
+          win: ['./gradlew.bat :app:bundleRelease','bundletool build-apks --bundle=app/build/outputs/bundle/release/app-release.aab --output=app.apks --ks=«PROJECT»-release.keystore --ks-key-alias=«KEY_ALIAS»'] },
+    expect:'BUILD SUCCESSFUL; app.apks is written.',
+    verify:'bundletool install-apks --apks=app.apks installs the optimised split APKs onto a connected device.',
+    fail:'Missing bundletool → download bundletool-all.jar from the Google bundletool releases page and alias it.' }
+  ]
+},
+
+/* ══════════════════════ 5. iOS · CAPACITOR ══════════════════════ */
+{
+  id:'ios-capacitor', icon:'🍎', name:'iOS · Capacitor',
+  blurb:'Wrap the SPA into a signed iOS archive and ship it to TestFlight. Requires macOS with Xcode.',
+  tags:['ios','capacitor','session-6'],
+  steps:[
+  { id:'ios-01', title:'Verify the Apple toolchain',
+    why:'Every iOS build path — Capacitor or native — requires Xcode command-line tools and a CocoaPods-free modern toolchain.',
+    cmd:{ unix:['xcodebuild -version','xcrun --sdk iphoneos --show-sdk-version','xcode-select -p'],
+          win: ['echo "iOS builds require macOS. Use a Mac, a macOS CI runner (macos-latest), or a cloud Mac provider."',
+                'echo "GitHub Actions: runs-on: macos-14  # Apple silicon, Xcode 15+"'] },
+    expect:'Xcode 15.x or newer · iOS SDK 17.x or newer · /Applications/Xcode.app/Contents/Developer',
+    verify:'sudo xcodebuild -runFirstLaunch completes and `xcrun simctl list devices` lists simulators.',
+    fail:'If xcode-select points at /Library/Developer/CommandLineTools, run: sudo xcode-select -s /Applications/Xcode.app' },
+
+  { id:'ios-02', title:'Add the iOS platform',
+    why:'cap add ios generates an Xcode workspace wired to the built web assets.',
+    cmd:{ unix:['npm install @capacitor/ios','npm run build','npx cap add ios'],
+          win: ['echo "Run this step on macOS only."'] },
+    expect:'✔ Adding native ios project … ✔ add in NNNms',
+    verify:'An ios/App/App.xcworkspace directory exists.',
+    fail:'"CocoaPods not installed" is no longer required for Capacitor 6+; if a legacy project demands it: sudo gem install cocoapods.' },
+
+  { id:'ios-03', title:'Sync web assets into the native project',
+    why:'The same copy → update-plugins → update-dependencies triad as Android.',
+    cmd:{ unix:['npx cap sync ios','npx cap copy ios'],
+          win: ['echo "Run this step on macOS only."'] },
+    expect:'✔ Copying web assets … ✔ sync finished',
+    verify:'ios/App/App/public/index.html exists and matches dist/index.html by hash: shasum ios/App/App/public/index.html dist/index.html',
+    fail:'Asset drift → delete ios/App/App/public and re-run `npx cap sync ios`.' },
+
+  { id:'ios-04', title:'Set the bundle identifier and signing team',
+    why:'Xcode refuses to archive without a resolved team and a unique bundle id registered in the developer portal.',
+    cmd:{ unix:['PROJ=ios/App/App.xcodeproj/project.pbxproj',
+      'sed -i "" "s/PRODUCT_BUNDLE_IDENTIFIER = .*/PRODUCT_BUNDLE_IDENTIFIER = «BUNDLE_ID»;/g" "$PROJ"',
+      'sed -i "" "s/DEVELOPMENT_TEAM = .*/DEVELOPMENT_TEAM = «TEAM_ID»;/g" "$PROJ"',
+      'grep -c "«BUNDLE_ID»" "$PROJ"'],
+          win: ['echo "Run this step on macOS only."'] },
+    expect:'grep prints a count of at least 2 (Debug and Release configurations).',
+    verify:'Open the workspace in Xcode: Signing & Capabilities shows the correct team and bundle id with no red errors.',
+    fail:'"No profiles for «BUNDLE_ID» were found" → register the App ID in the Apple Developer portal, or enable Automatically manage signing.' },
+
+  { id:'ios-05', title:'Warm the Xcode cache with a simulator build',
+    why:'Compiling for the simulator first isolates Swift/ObjC errors from codesigning errors.',
+    cmd:{ unix:['xcodebuild -workspace ios/App/App.xcworkspace -scheme App \\',
+      '  -configuration Debug -sdk iphonesimulator \\',
+      '  -destination "platform=iOS Simulator,name=iPhone 15" build | xcbeautify || true'],
+          win: ['echo "Run this step on macOS only."'] },
+    expect:'** BUILD SUCCEEDED **',
+    verify:'xcrun simctl boot "iPhone 15" && xcrun simctl install booted <path>/App.app then launch it.',
+    fail:'xcbeautify is optional; drop it if not installed. "No such module" errors mean a Pod/SPM dependency is unresolved.' },
+
+  { id:'ios-06', title:'Archive the release build',
+    why:'An .xcarchive is the atomic input to the export step; it contains the compiled binary plus its dSYMs.',
+    cmd:{ unix:['xcodebuild -workspace ios/App/App.xcworkspace -scheme App \\',
+      '  -configuration Release -sdk iphoneos \\',
+      '  -archivePath build/App.xcarchive \\',
+      '  -allowProvisioningUpdates \\',
+      '  archive'],
+          win: ['echo "Run this step on macOS only."'] },
+    expect:'** ARCHIVE SUCCEEDED **',
+    verify:'ls build/App.xcarchive/dSYMs contains App.app.dSYM — required for crash symbolication.',
+    fail:'"No signing certificate iOS Development found" → xcodebuild -allowProvisioningUpdates requires an authenticated Xcode account (Xcode → Settings → Accounts).' },
+
+  { id:'ios-07', title:'Export the IPA',
+    why:'exportArchive converts the archive into a distribution-signed .ipa using an explicit export-options plist.',
+    cmd:{ unix:['cat > ExportOptions.plist <<\'PLIST\'',
+      '<?xml version="1.0" encoding="UTF-8"?>',
+      '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">',
+      '<plist version="1.0"><dict>',
+      '  <key>method</key><string>app-store-connect</string>',
+      '  <key>teamID</key><string>«TEAM_ID»</string>',
+      '  <key>uploadSymbols</key><true/>',
+      '  <key>compileBitcode</key><false/>',
+      '  <key>destination</key><string>export</string>',
+      '</dict></plist>',
+      'PLIST',
+      '',
+      'xcodebuild -exportArchive -archivePath build/App.xcarchive \\',
+      '  -exportOptionsPlist ExportOptions.plist \\',
+      '  -exportPath build/ipa -allowProvisioningUpdates'],
+          win: ['echo "Run this step on macOS only."'] },
+    expect:'** EXPORT SUCCEEDED **; build/ipa/«APP_NAME».ipa is written.',
+    verify:'unzip -l build/ipa/*.ipa | head shows Payload/App.app/Info.plist.',
+    fail:'"method" is a closed enum: valid values are app-store-connect, release-testing, ad-hoc, enterprise, development, mac-application.' },
+
+  { id:'ios-08', title:'Upload to App Store Connect',
+    why:'altool was retired; notarytool and the Transporter/API key path are the supported mechanisms.',
+    cmd:{ unix:['xcrun altool --upload-app -f build/ipa/*.ipa -t ios \\',
+      '  --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID" 2>/dev/null \\',
+      '  || xcrun notarytool --version',
+      '',
+      'echo "Modern path: Xcode Organizer → Distribute App → App Store Connect → Upload"'],
+          win: ['echo "Run this step on macOS only."'] },
+    expect:'"No errors uploading" or a successful Organizer upload.',
+    verify:'App Store Connect → TestFlight shows the build with state "Processing" then "Ready to Submit".',
+    fail:'Generate an App Store Connect API key at App Store Connect → Users and Access → Integrations → App Store Connect API. Store the .p8 file securely; it can be downloaded only once.' },
+
+  { id:'ios-09', title:'Distribute to TestFlight',
+    why:'TestFlight is the fastest verifiable distribution channel for iOS before App Review.',
+    cmd:{ unix:['echo "After processing completes:"',
+      'echo "  1. App Store Connect → TestFlight → Builds → select build"',
+      'echo "  2. Add internal testers (no review required)"',
+      'echo "  3. External testers require a Beta App Review (typically < 24h)"'],
+          win: ['echo "Run this step on macOS only."'] },
+    expect:'Testers receive an invitation and install via the TestFlight app.',
+    verify:'At least one internal tester installs the build and opens the app successfully.',
+    fail:'"Missing Compliance" → answer the export-compliance question. If the app uses no non-exempt encryption, add ITSAppUsesNonExemptEncryption = false to Info.plist.' }
+  ]
+},
+
+/* ══════════════════════ 6. iOS · NATIVE ══════════════════════ */
+{
+  id:'ios-native', icon:'🛠', name:'iOS · SwiftUI + SwiftData',
+  blurb:'A fully native iOS client with SwiftData persistence, Keychain secret storage and the document picker.',
+  tags:['ios','swiftui','session-6'],
+  steps:[
+  { id:'swi-01', title:'Create the Swift Package project skeleton',
+    why:'A scriptable skeleton keeps the iOS track reproducible from the terminal rather than from the Xcode wizard.',
+    cmd:{ unix:['mkdir -p «PROJECT»-ios/Sources/IndexEngine','cd «PROJECT»-ios',
+      'cat > Package.swift <<\'SWIFT\'',
+      '// swift-tools-version:5.9',
+      'import PackageDescription',
+      '',
+      'let package = Package(',
+      '  name: "IndexEngine",',
+      '  platforms: [.iOS(.v17), .macOS(.v14)],',
+      '  products: [.library(name: "IndexEngine", targets: ["IndexEngine"])],',
+      '  targets: [.target(name: "IndexEngine", path: "Sources/IndexEngine")]',
+      ')',
+      'SWIFT',
+      'swift package describe'],
+          win: ['echo "Run this step on macOS only."'] },
+    expect:'A package description listing the IndexEngine target.',
+    verify:'swift build succeeds on macOS 14+.',
+    fail:'Swift 5.9 is the minimum for the SwiftData macros used below.' },
+
+  { id:'swi-02', title:'Define the ledger model with SwiftData',
+    why:'SwiftData replaces Core Data boilerplate while preserving transactional integrity.',
+    cmd:{ unix:['cat > Sources/IndexEngine/LedgerRow.swift <<\'SWIFT\'',
+      'import Foundation',
+      'import SwiftData',
+      'import CryptoKit',
+      '',
+      '@Model',
+      'public final class LedgerRow {',
+      '  @Attribute(.unique) public var archiveId: String',
+      '  public var oldName: String',
+      '  public var newName: String',
+      '  public var typeCode: String',
+      '  public var timestamp: Date',
+      '  public var prevHash: String',
+      '  public var hash: String',
+      '',
+      '  public init(archiveId: String, oldName: String, newName: String,',
+      '              typeCode: String, timestamp: Date = .now,',
+      '              prevHash: String, hash: String) {',
+      '    self.archiveId = archiveId; self.oldName = oldName; self.newName = newName',
+      '    self.typeCode = typeCode; self.timestamp = timestamp',
+      '    self.prevHash = prevHash; self.hash = hash',
+      '  }',
+      '',
+      '  /// SHA-256 over (prevHash ‖ archiveId ‖ newName ‖ timestamp).',
+      '  public static func digest(prev: String, id: String, name: String, at: Date) -> String {',
+      '    let payload = "\\(prev)|\\(id)|\\(name)|\\(at.timeIntervalSince1970)"',
+      '    let d = SHA256.hash(data: Data(payload.utf8))',
+      '    return d.map { String(format: "%02x", $0) }.joined()',
+      '  }',
+      '}',
+      'SWIFT'],
+      win: ['echo "Run this step on macOS only."'] },
+    expect:'LedgerRow.swift is created.',
+    verify:'swift build compiles the @Model macro without errors.',
+    fail:'@Attribute(.unique) requires SwiftData (iOS 17+). For iOS 16 support, fall back to Core Data with a uniqueness constraint.' },
+
+  { id:'swi-03', title:'Write the append-only ledger actor',
+    why:'An actor serialises writes, guaranteeing that ID allocation is atomic under concurrent ingestion.',
+    cmd:{ unix:['cat > Sources/IndexEngine/LedgerStore.swift <<\'SWIFT\'',
+      'import Foundation',
+      'import SwiftData',
+      '',
+      '@ModelActor',
+      'public actor LedgerStore {',
+      '  public func append(oldName: String, newName: String, typeCode: String) throws -> LedgerRow {',
+      '    let descriptor = FetchDescriptor<LedgerRow>(',
+      '      sortBy: [SortDescriptor(\\.timestamp, order: .reverse)])',
+      '    let last = try modelContext.fetch(descriptor).first',
+      '    let seq = (last.flatMap { Int($0.archiveId.dropFirst(4)) } ?? 0) + 1',
+      '    let id = String(format: "FILE%06d", seq)',
+      '    let row = LedgerRow(archiveId: id, oldName: oldName, newName: newName,',
+      '                        typeCode: typeCode,',
+      '                        prevHash: last?.hash ?? String(repeating: "0", count: 64),',
+      '                        hash: "")',
+      '    row.hash = LedgerRow.digest(prev: row.prevHash, id: id,',
+      '                                name: newName, at: row.timestamp)',
+      '    modelContext.insert(row)',
+      '    try modelContext.save()',
+      '    return row',
+      '  }',
+      '}',
+      'SWIFT'],
+      win: ['echo "Run this step on macOS only."'] },
+    expect:'LedgerStore.swift is created.',
+    verify:'swift build succeeds; a unit test inserting 100 rows yields strictly increasing FILE###### ids.',
+    fail:'`Int($0.archiveId.dropFirst(4))` assumes the FILE prefix is 4 characters. Assert the format before parsing to avoid a force-unwrap crash.' },
+
+  { id:'swi-04', title:'Store the API key in the Keychain',
+    why:'UserDefaults is stored in an unencrypted plist inside the app container. Keychain is the only correct location for a credential.',
+    cmd:{ unix:['cat > Sources/IndexEngine/Keychain.swift <<\'SWIFT\'',
+      'import Foundation',
+      'import Security',
+      '',
+      'public enum Keychain {',
+      '  private static let service = "«BUNDLE_ID».apikey"',
+      '',
+      '  public static func set(_ value: String, account: String) throws {',
+      '    let data = Data(value.utf8)',
+      '    var q: [String: Any] = [kSecClass as String: kSecClassGenericPassword,',
+      '                            kSecAttrService as String: service,',
+      '                            kSecAttrAccount as String: account]',
+      '    SecItemDelete(q as CFDictionary)',
+      '    q[kSecValueData as String] = data',
+      '    q[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly',
+      '    let status = SecItemAdd(q as CFDictionary, nil)',
+      '    guard status == errSecSuccess else { throw NSError(domain: "keychain", code: Int(status)) }',
+      '  }',
+      '',
+      '  public static func get(account: String) -> String? {',
+      '    let q: [String: Any] = [kSecClass as String: kSecClassGenericPassword,',
+      '                            kSecAttrService as String: service,',
+      '                            kSecAttrAccount as String: account,',
+      '                            kSecReturnData as String: true,',
+      '                            kSecMatchLimit as String: kSecMatchLimitOne]',
+      '    var out: AnyObject?',
+      '    guard SecItemCopyMatching(q as CFDictionary, &out) == errSecSuccess,',
+      '          let d = out as? Data else { return nil }',
+      '    return String(data: d, encoding: .utf8)',
+      '  }',
+      '}',
+      'SWIFT'],
+      win: ['echo "Run this step on macOS only."'] },
+    expect:'Keychain.swift is created.',
+    verify:'A round-trip test (set then get) returns the original value; the item is absent after app uninstall only when using ThisDeviceOnly.',
+    fail:'kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly prevents the secret from being restored to a new device via iCloud backup — the correct trade-off for privileged material.' },
+
+  { id:'swi-05', title:'Implement the document importer',
+    why:'The security-scoped URL must be balanced with startAccessingSecurityScopedResource before any read.',
+    cmd:{ unix:['cat > Sources/IndexEngine/DocumentPicker.swift <<\'SWIFT\'',
+      'import SwiftUI',
+      'import UniformTypeIdentifiers',
+      '',
+      'public struct DocumentPicker: View {',
+      '  @State private var importing = false',
+      '  public var onPick: (URL) -> Void',
+      '',
+      '  public var body: some View {',
+      '    Button("Import Documents") { importing = true }',
+      '      .fileImporter(',
+      '        isPresented: $importing,',
+      '        allowedContentTypes: [.pdf, .image, .plainText, .commaSeparatedText],',
+      '        allowsMultipleSelection: true',
+      '      ) { result in',
+      '        guard case .success(let urls) = result else { return }',
+      '        for url in urls {',
+      '          let scoped = url.startAccessingSecurityScopedResource()',
+      '          defer { if scoped { url.stopAccessingSecurityScopedResource() } }',
+      '          onPick(url)',
+      '        }',
+      '      }',
+      '  }',
+      '}',
+      'SWIFT'],
+      win: ['echo "Run this step on macOS only."'] },
+    expect:'DocumentPicker.swift is created.',
+    verify:'swift build succeeds and the view compiles against UniformTypeIdentifiers.',
+    fail:'Forgetting stopAccessingSecurityScopedResource leaks a kernel resource and eventually blocks further imports.' },
+
+  { id:'swi-06', title:'Build and run on a simulator',
+    why:'A fast, signing-free compile loop for day-to-day development.',
+    cmd:{ unix:['xcodebuild -scheme IndexEngine -destination "platform=iOS Simulator,name=iPhone 15" build',
+      'xcrun simctl boot "iPhone 15" || true',
+      'open -a Simulator'],
+          win: ['echo "Run this step on macOS only."'] },
+    expect:'** BUILD SUCCEEDED **',
+    verify:'The app launches in the Simulator and the import button opens the Files picker.',
+    fail:'"Unable to find a destination matching the provided device" → list valid names with: xcrun simctl list devices available' },
+
+  { id:'swi-07', title:'Run the ledger invariant tests',
+    why:'The chain and ID invariants are the core correctness property of the product; they must be tested, not assumed.',
+    cmd:{ unix:['swift test 2>/dev/null || xcodebuild test \\',
+      '  -scheme IndexEngine \\',
+      '  -destination "platform=iOS Simulator,name=iPhone 15"'],
+          win: ['echo "Run this step on macOS only."'] },
+    expect:'Executed N tests, with 0 failures.',
+    verify:'At minimum: monotonic sequence, unique archiveId, digest chain integrity, and tamper detection.',
+    fail:'SwiftData tests require a host application when using a persistent store; use isStoredInMemoryOnly: true for the test container.' },
+
+  { id:'swi-08', title:'Archive and export for distribution',
+    why:'Identical to the Capacitor path — the archive/export pair is universal for iOS.',
+    cmd:{ unix:['xcodebuild -scheme IndexEngine -configuration Release -sdk iphoneos \\',
+      '  -archivePath build/IndexEngine.xcarchive archive',
+      '',
+      'xcodebuild -exportArchive -archivePath build/IndexEngine.xcarchive \\',
+      '  -exportOptionsPlist ExportOptions.plist -exportPath build/ipa'],
+          win: ['echo "Run this step on macOS only."'] },
+    expect:'** ARCHIVE SUCCEEDED ** then ** EXPORT SUCCEEDED **.',
+    verify:'build/ipa contains a signed .ipa whose embedded.mobileprovision expiry is in the future.',
+    fail:'Reuse ExportOptions.plist from the Capacitor protocol; the `method` key must match the provisioning profile type.' }
+  ]
+},
+
+/* ══════════════════════ 7. LEDGER OPS ══════════════════════ */
+{
+  id:'ledger-ops', icon:'🗂', name:'Ledger Ops & Batch Rename',
+  blurb:'Drive the Index Engine from a terminal: validate the ledger, generate rename scripts, audit the nomenclature.',
+  tags:['ops','shell','session-2'],
+  steps:[
+  { id:'ops-01', title:'Export the master ledger to CSV',
+    why:'The CSV is the interchange format between the SPA, the terminal and any downstream LLM ingestion pipeline.',
+    cmd:{ unix:['# From the SPA: Analytics & DB tab → CSV. Then inspect it:',
+      'head -3 V6_Archive_$(date +%F).csv',
+      'wc -l V6_Archive_$(date +%F).csv'],
+          win: ['Get-Content (Get-ChildItem V6_Archive_*.csv | Select-Object -First 1) -TotalCount 3',
+      '(Get-Content V6_Archive_*.csv).Count'] },
+    expect:'The first line is the UTF-8-BOM header: Archive ID,Old Filename,New Filename,Timestamp',
+    verify:'The file opens in Excel, Numbers and Sheets with no mojibake in the first column.',
+    fail:'If the BOM is missing, non-ASCII characters in the first column will render as "Ã¯Â»Â¿". Re-export from the SPA — the BOM injection is mandatory.' },
+
+  { id:'ops-02', title:'Validate every filename against the nomenclature',
+    why:'A single regex assertion catches every hand-edited or legacy filename before it reaches the archive.',
+    cmd:{ unix:['# 9-part + optional extensions + FILE###### id',
+      'RE="^[0-9]{4}\\.[0-9]{2}\\.[0-9]{2}\\.[A-Za-z0-9]+\\.[A-Z]{4,6}\\.[A-Za-z0-9]{1,35}\\."',
+      'RE="$RE(v[0-9]{2}|[A-Z]{3,4})\\.[A-Z]{4}\\.[A-Z]{4}\\.[A-Z]{2,24}"',
+      'RE="$RE(\\.[A-Za-z0-9]+)*\\.FILE[0-9]{6}\\.[A-Za-z0-9]+$"',
+      'ls -1 | grep -vE "$RE" | tee /tmp/nonconformant.txt',
+      'echo "non-conformant: $(wc -l < /tmp/nonconformant.txt)"'],
+          win: ['$RE = "^[0-9]{4}\\.[0-9]{2}\\.[0-9]{2}\\.[A-Za-z0-9]+\\.[A-Z]{4,6}\\.[A-Za-z0-9]{1,35}\\.(v[0-9]{2}|[A-Z]{3,4})\\.[A-Z]{4}\\.[A-Z]{4}\\.[A-Z]{2,24}(\\.[A-Za-z0-9]+)*\\.FILE[0-9]{6}\\.[A-Za-z0-9]+$"',
+      'Get-ChildItem -File | Where-Object { $_.Name -notmatch $RE } | Select-Object -ExpandProperty Name'] },
+    expect:'An empty report — every file conforms.',
+    verify:'The regex anchors with ^ and $ so partial matches cannot pass.',
+    fail:'Legacy files will fail by design. Rename them through the SPA so the ledger records the provenance, rather than renaming them by hand.' },
+
+  { id:'ops-03', title:'Dry-run a batch rename',
+    why:'Never rename thousands of files without first proving the mapping. A dry run prints the exact operation set.',
+    cmd:{ unix:['while IFS=, read -r id old new ts; do',
+      '  [ -f "$old" ] && echo "RENAME  $old  ->  $new" || echo "MISSING $old"',
+      'done < <(tail -n +2 ledger.csv) | tee rename-dryrun.txt',
+      'grep -c "^RENAME" rename-dryrun.txt'],
+          win: ['Import-Csv ledger.csv | ForEach-Object {',
+      '  if (Test-Path $_.\'Old Filename\') { "RENAME  $($_.\'Old Filename\')  ->  $($_.\'New Filename\')" }',
+      '  else { "MISSING $($_.\'Old Filename\')" }',
+      '} | Tee-Object rename-dryrun.txt'] },
+    expect:'One RENAME line per present file; MISSING lines identify files no longer on disk.',
+    verify:'The RENAME count equals the number of rows in the ledger with Old Filename != MANUAL_ENTRY.',
+    fail:'Do not proceed if any line reads MISSING for a file you believe exists — the CSV quoting may have been damaged by a spreadsheet round-trip.' },
+
+  { id:'ops-04', title:'Execute the rename with a collision guard',
+    why:'A hard-link backup plus a no-clobber rename makes the operation reversible and non-destructive.',
+    cmd:{ unix:['mkdir -p .ledger-backup',
+      'while IFS=, read -r id old new ts; do',
+      '  [ -f "$old" ] || continue',
+      '  cp -p -- "$old" ".ledger-backup/$old"',
+      '  if [ -e "$new" ]; then echo "SKIP (target exists): $new" >&2; continue; fi',
+      '  mv -n -- "$old" "$new"',
+      'done < <(tail -n +2 ledger.csv)',
+      'echo "Done. Rollback: mv .ledger-backup/* ."'],
+          win: ['New-Item -ItemType Directory -Force .ledger-backup | Out-Null',
+      'Import-Csv ledger.csv | ForEach-Object {',
+      '  $o = $_.\'Old Filename\'; $n = $_.\'New Filename\'',
+      '  if (-not (Test-Path $o)) { return }',
+      '  Copy-Item $o ".ledger-backup/$o" -Force',
+      '  if (Test-Path $n) { Write-Warning "SKIP (target exists): $n"; return }',
+      '  Move-Item -LiteralPath $o -Destination $n',
+      '}'] },
+    expect:'No error output; the directory listing shows the new nomenclature.',
+    verify:'ls | grep -cE "FILE[0-9]{6}" equals the number of renamed files.',
+    fail:'**Invariant.** The backup directory must be excluded from any subsequent archival or cloud sync, and deleted only after the ledger has been verified.' },
+
+  { id:'ops-05', title:'Verify ledger chain integrity',
+    why:'A tampered or reordered ledger invalidates the provenance guarantee. The chain is verifiable offline.',
+    cmd:{ unix:['# Each row\'s hash must equal SHA256(prevHash ‖ archiveId ‖ newName ‖ timestamp)',
+      'python3 - <<\'PY\'',
+      'import csv, hashlib, sys',
+      'rows = list(csv.DictReader(open("ledger.csv", encoding="utf-8-sig")))',
+      'bad = 0',
+      'for i, r in enumerate(rows):',
+      '    if i == 0: continue',
+      '    if r["PrevHash"] != rows[i-1]["Hash"]:',
+      '        print("BROKEN CHAIN at", r["Archive ID"]); bad += 1',
+      'print("rows:", len(rows), "| broken links:", bad)',
+      'sys.exit(1 if bad else 0)',
+      'PY'],
+          win: ['python -c "import csv,sys; rows=list(csv.DictReader(open(\'ledger.csv\',encoding=\'utf-8-sig\'))); bad=sum(1 for i,r in enumerate(rows) if i and r[\'PrevHash\']!=rows[i-1][\'Hash\']); print(\'rows:\',len(rows),\'| broken:\',bad); sys.exit(1 if bad else 0)"'] },
+    expect:'broken links: 0 and exit status 0.',
+    verify:'Deliberately editing one cell in ledger.csv and re-running must report exactly one broken link.',
+    fail:'A non-zero broken-link count means the ledger was edited outside the application. Restore from the encrypted cloud backup and re-verify.' },
+
+  { id:'ops-06', title:'Count and report by taxonomy segment',
+    why:'Segment-level aggregation is what makes the nomenclature useful to a downstream LLM: the counts ARE the corpus profile.',
+    cmd:{ unix:['find . -maxdepth 1 -type f -name "*.FILE[0-9]*" -printf "%f\\n" \\',
+      '  | awk -F. \'{print $5}\' | sort | uniq -c | sort -rn | head -20'],
+          win: ['Get-ChildItem -File | Where-Object Name -match "\\.FILE[0-9]{6}\\." | ForEach-Object { ($_.Name -split "\\.")[4] } | Group-Object | Sort-Object Count -Descending | Select-Object Count,Name -First 20'] },
+    expect:'A descending frequency table of TYPE codes (field 5, 1-indexed).',
+    verify:'The sum of the counts equals the total file count.',
+    fail:'If field 5 returns dates, a custom segment was inserted before TYPE — which violates INV-NOM-02. Custom segments belong after AUTHOR.' },
+
+  { id:'ops-07', title:'Generate the inverse (undo) rename script',
+    why:'Every destructive bulk operation must ship with its inverse, generated from the same source of truth.',
+    cmd:{ unix:['{ echo "#!/usr/bin/env bash"; echo "set -euo pipefail";',
+      '  echo "# Inverse of the batch rename. Run in the SAME directory as the originals.";',
+      '} > undo-rename.sh',
+      'tail -n +2 ledger.csv | while IFS=, read -r id old new ts; do',
+      '  printf \'mv -n -- %q %q\\n\' "$new" "$old" >> undo-rename.sh',
+      'done',
+      'chmod +x undo-rename.sh && bash -n undo-rename.sh && echo "undo-rename.sh OK"'],
+          win: ['"@echo off" | Set-Content undo-rename.bat',
+      'Import-Csv ledger.csv | ForEach-Object {',
+      '  Add-Content undo-rename.bat ("ren \\"" + $_.\'New Filename\' + "\\" \\"" + $_.\'Old Filename\' + "\\"")',
+      '}'] },
+    expect:'undo-rename.sh OK — bash -n reports no syntax errors.',
+    verify:'bash -n undo-rename.sh performs a syntax check without executing anything.',
+    fail:'Never run an undo script generated from a CSV that has been through a spreadsheet round-trip without inspecting the quoting first.' }
+  ]
+},
+
+/* ══════════════════════ 8. HARDENING ══════════════════════ */
+{
+  id:'hardening', icon:'🛡', name:'Security Hardening',
+  blurb:'Close the audit findings: SRI pinning, CSP, key handling, encryption at rest, and supply-chain integrity.',
+  tags:['security','audit','session-7'],
+  steps:[
+  { id:'sec-01', title:'Audit the dependency tree',
+    why:'A client-side app that ingests privileged documents inherits every transitive dependency\'s risk.',
+    cmd:{ unix:['npm audit --audit-level=high','npm audit fix --dry-run','npx @cyclonedx/cyclonedx-npm --output-file sbom.json'],
+          win: ['npm audit --audit-level=high','npm audit fix --dry-run','npx @cyclonedx/cyclonedx-npm --output-file sbom.json'] },
+    expect:'"found 0 vulnerabilities" at the high and critical levels; sbom.json is emitted in CycloneDX format.',
+    verify:'jq \'.components | length\' sbom.json returns a positive count.',
+    fail:'npm audit fix can introduce breaking changes. Prefer `npm audit fix --force` only after reading each advisory.' },
+
+  { id:'sec-02', title:'Pin every CDN asset with Subresource Integrity',
+    why:'A CDN compromise, or a DNS hijack, otherwise executes arbitrary JavaScript with full access to privileged document data.',
+    cmd:{ unix:['for f in $(find . -name "*.html" -not -path "./node_modules/*"); do',
+      '  echo "── $f"; grep -nE "https://(cdn|unpkg|cdnjs)[^\"]*" "$f" || echo "  (none)";',
+      'done',
+      '',
+      '# Generate a hash for one asset:',
+      'curl -sL https://cdn.tailwindcss.com | openssl dgst -sha384 -binary | openssl base64 -A'],
+          win: ['Get-ChildItem -Recurse -Filter *.html | ForEach-Object {',
+      '  Select-String -Path $_.FullName -Pattern "https://(cdn|unpkg|cdnjs)[^\\"]*" | ForEach-Object { "$($_.Filename):$($_.LineNumber)  $($_.Matches.Value)" }',
+      '}'] },
+    expect:'An inventory of every remote script/style URL.',
+    verify:'Each external <script> carries integrity="sha384-…" and crossorigin="anonymous".',
+    fail:'**Invariant.** A file with no `integrity` attribute is a supply-chain hole. If the CDN does not version-pin its URL, self-host the asset instead.' },
+
+  { id:'sec-03', title:'Self-host the Tailwind and icon bundles',
+    why:'Removing the CDN entirely eliminates the third-party execution surface and makes the app work fully offline.',
+    cmd:{ unix:['npm install -D tailwindcss @tailwindcss/cli lucide-static',
+      'mkdir -p vendor',
+      'npx @tailwindcss/cli -i src/input.css -o vendor/tailwind.css --minify',
+      'cp node_modules/lucide-static/font/lucide.css vendor/ 2>/dev/null || true',
+      'ls -lh vendor/'],
+          win: ['npm install -D tailwindcss @tailwindcss/cli lucide-static',
+      'New-Item -ItemType Directory -Force vendor | Out-Null',
+      'npx @tailwindcss/cli -i src/input.css -o vendor/tailwind.css --minify',
+      'Get-ChildItem vendor'] },
+    expect:'vendor/tailwind.css is generated and minified (typically under 30 kB for a focused app).',
+    verify:'The SPA loads with the network fully disabled in DevTools.',
+    fail:'If the built CSS is unexpectedly large, the `content` glob is scanning node_modules. Restrict it to src/**/*.{ts,tsx,html}.' },
+
+  { id:'sec-04', title:'Deploy a strict Content-Security-Policy',
+    why:'CSP is the only control that limits the blast radius of an XSS in a document-rendering app.',
+    cmd:{ unix:['cat > public/_headers <<\'HDRS\'',
+      '/*',
+      '  Content-Security-Policy: default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data: blob:; connect-src \'self\' https://generativelanguage.googleapis.com; font-src \'self\'; object-src \'none\'; base-uri \'none\'; frame-ancestors \'none\'; form-action \'none\'',
+      '  X-Content-Type-Options: nosniff',
+      '  Referrer-Policy: no-referrer',
+      '  Permissions-Policy: camera=(), microphone=(), geolocation=()',
+      '  Cross-Origin-Opener-Policy: same-origin',
+      '  Cross-Origin-Embedder-Policy: require-corp',
+      'HDRS'],
+          win: ['Set-Content -Encoding utf8 public/_headers @\'',
+      '/*',
+      '  Content-Security-Policy: default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data: blob:; connect-src \'self\' https://generativelanguage.googleapis.com; object-src \'none\'; frame-ancestors \'none\'',
+      '  X-Content-Type-Options: nosniff',
+      '  Referrer-Policy: no-referrer',
+      '\'@'] },
+    expect:'public/_headers is created.',
+    verify:'curl -sI https://<host>/ | grep -i content-security-policy returns the policy.',
+    fail:'GitHub Pages ignores _headers. For Pages you must use a <meta http-equiv="Content-Security-Policy"> tag, or front the site with Cloudflare Workers / Netlify which honour _headers.' },
+
+  { id:'sec-05', title:'Move the API key out of localStorage',
+    why:'Directly closes audit finding C-05. Any script on the origin can read localStorage; an in-memory or session-scoped secret dramatically narrows the window.',
+    cmd:{ unix:['grep -rn "localStorage.setItem(\'v6_api_key\'" . --include="*.html"',
+      '# Expected finding — the vulnerable line:',
+      '#   localStorage.setItem(\'v6_api_key\', keyInput);'],
+          win: ['Select-String -Path *.html -Pattern "v6_api_key" | ForEach-Object { "$($_.Filename):$($_.LineNumber)" }'] },
+    expect:'Exactly one match, in Settings → commitApiKey().',
+    verify:'After remediation there are ZERO matches for "v6_api_key" in the source tree.',
+    fail:'Remediation is code, not shell: replace the setItem with an in-memory module-scoped variable plus an optional WebCrypto-wrapped session vault. See Session 4.' },
+
+  { id:'sec-06', title:'Verify the release artifact end to end',
+    why:'A cryptographic digest recorded at release time is the only way to prove later that a distributed file is unmodified.',
+    cmd:{ unix:['sha256sum dist/**/* 2>/dev/null | sort -k2 > SHA256SUMS.txt || find dist -type f -exec sha256sum {} + | sort -k2 > SHA256SUMS.txt',
+      'sha256sum -c SHA256SUMS.txt | tail -5'],
+          win: ['Get-ChildItem dist -Recurse -File | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $($_.Path)" } | Sort-Object | Set-Content SHA256SUMS.txt',
+      'Get-Content SHA256SUMS.txt | Select-Object -First 5'] },
+    expect:'Every line reports "OK".',
+    verify:'Re-running sha256sum -c after a fresh clone and rebuild reproduces the identical digest set (a reproducible build).',
+    fail:'Digests differ between machines → nondeterministic build. Pin the toolchain and remove timestamps from the output, or accept documented non-reproducibility.' }
+  ]
+}
+];
+
+/* ════════════════════════════════════════════════════════════════════════
+   STATE
+   ════════════════════════════════════════════════════════════════════════ */
+var LS_PROGRESS = 'tce.progress.v1';
+var LS_VARS     = 'tce.vars.v1';
+var LS_SHELL    = 'tce.shell.v1';
+var LS_RECIPE   = 'tce.recipe.v1';
+
+var state = {
+  recipeId: null,
+  shell: 'unix',
+  vars: {},
+  progress: {},
+  query: ''
+};
+
+function lsGet(key, fallback) {
+  try { var v = localStorage.getItem(key); return v === null ? fallback : JSON.parse(v); }
+  catch (e) { return fallback; }
+}
+function lsSet(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* quota / private mode */ }
+}
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                  .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+/* ── Persistence ─────────────────────────────────────────────────────── */
+function saveAll() { lsSet(LS_PROGRESS, state.progress); lsSet(LS_VARS, state.vars); }
+function loadAll() {
+  state.progress = lsGet(LS_PROGRESS, {});
+  state.shell    = lsGet(LS_SHELL, 'unix');
+  state.recipeId = lsGet(LS_RECIPE, RECIPES[0].id);
+  var stored = lsGet(LS_VARS, {});
+  state.vars = {};
+  VARIABLES.forEach(function (v) { state.vars[v.key] = (stored[v.key] != null && stored[v.key] !== '') ? stored[v.key] : v.def; });
+  if (!RECIPES.some(function (r) { return r.id === state.recipeId; })) state.recipeId = RECIPES[0].id;
+}
+
+/* ── Interpolation ───────────────────────────────────────────────────── */
+/**
+ * Replace a parameter token with its live value.
+ * Accepts BOTH canonical forms — `{{KEY}}` (template source) and `«KEY»`
+ * (authoring form used throughout the catalogue) — so that authoring stays
+ * readable while the substitution contract remains single-sourced.
+ * A parameter with no value is re-emitted as the visible token «KEY», which
+ * the renderer flags as UNRESOLVED and blocks from being pasted blindly.
+ */
+var TOKEN_RE = /\{\{\s*([A-Z_]+)\s*\}\}|\u00ab([A-Z_]+)\u00bb/g;
+function subst(text) {
+  return String(text).replace(TOKEN_RE, function (m, braced, guillemet) {
+    var key = braced || guillemet;
+    var v = state.vars[key];
+    return (v == null || String(v).trim() === '') ? '\u00ab' + key + '\u00bb' : String(v);
+  });
+}
+/** Raw, UN-substituted body of a step across both shells — used for token discovery. */
+function rawText(step) {
+  var pair = step.cmd || {};
+  var both = [];
+  if (pair.unix) both.push(pair.unix.join('\n'));
+  if (pair.win)  both.push(pair.win.join('\n'));
+  [step.why, step.expect, step.verify, step.fail, step.warn].forEach(function (t) { if (t) both.push(String(t)); });
+  return both.join('\n');
+}
+/** Join an array-of-lines command body for the active shell, with parameters resolved. */
+function cmdText(step) {
+  var pair = step.cmd || {};
+  var lines = pair[state.shell] || pair.unix || [];
+  return subst(lines.join('\n'));
+}
+function unresolved(text) {
+  var out = [];
+  text.replace(/\u00ab([A-Z_]+)\u00bb/g, function (m, k) { if (out.indexOf(k) < 0) out.push(k); return m; });
+  return out;
+}
+/** Colourise comments and highlight unresolved tokens. */
+function renderCode(text) {
+  return esc(text).split('\n').map(function (line) {
+    var isComment = /^\s*(#|REM\b|::)/i.test(line);
+    var body = line
+      .replace(/\u00ab[A-Z_]+\u00bb/g, function (t) { return '<span class="tok">' + t + '</span>'; })
+      .replace(/(&quot;.*?&quot;|\u2018[^\u2019]*\u2019)/g, function (q) { return '<span style="color:#7dd3fc">' + q + '</span>'; });
+    return isComment ? '<span class="cmt">' + body + '</span>' : body;
+  }).join('\n');
+}
+
+/* ── Toast ───────────────────────────────────────────────────────────── */
+function toast(msg, kind) {
+  var host = document.getElementById('toasts');
+  var el = document.createElement('div');
+  var colour = kind === 'err' ? 'var(--rose)' : (kind === 'ok' ? 'var(--emerald)' : 'var(--sky)');
+  el.className = 'toast glass rounded-xl px-4 py-3 text-xs font-bold shadow-2xl';
+  el.style.borderColor = colour;
+  el.style.color = colour;
+  el.textContent = msg;
+  host.appendChild(el);
+  setTimeout(function () { el.remove(); }, 2600);
+}
+
+/* ── Clipboard (secure-context aware, with fallback) ─────────────────── */
+function copy(text, label) {
+  function done() { toast('\u2713 Copied ' + (label || 'command'), 'ok'); }
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(done).catch(function () { fallback(); });
+  } else { fallback(); }
+  function fallback() {
+    var shim = document.getElementById('clipboardShim');
+    shim.value = text;
+    shim.removeAttribute('aria-hidden');
+    shim.select();
+    try { document.execCommand('copy'); done(); }
+    catch (e) { toast('Copy blocked — select the text manually', 'err'); }
+    shim.setAttribute('aria-hidden', 'true');
+    window.getSelection().removeAllRanges();
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   RENDER
+   ════════════════════════════════════════════════════════════════════════ */
+
+function currentRecipe() {
+  return RECIPES.filter(function (r) { return r.id === state.recipeId; })[0] || RECIPES[0];
+}
+function progFor(id) { return state.progress[id] || {}; }
+function isDone(recipeId, stepId) { return !!progFor(recipeId)[stepId]; }
+function setDone(recipeId, stepId, value) {
+  if (!state.progress[recipeId]) state.progress[recipeId] = {};
+  if (value) state.progress[recipeId][stepId] = true;
+  else delete state.progress[recipeId][stepId];
+  saveAll();
+}
+
+/* ── Variables panel ─────────────────────────────────────────────────── */
+function renderVariables() {
+  var host = document.getElementById('varHost');
+  var used = {};
+  // Scan the RAW catalogue text: after substitution the tokens are gone, so
+  // discovery must happen against the unresolved source, never the render.
+  currentRecipe().steps.forEach(function (s) {
+    rawText(s).replace(TOKEN_RE, function (m, braced, guillemet) { used[braced || guillemet] = true; return m; });
+  });
+  var relevant = VARIABLES.filter(function (v) { return used[v.key]; });
+  document.getElementById('varCount').textContent = relevant.length + ' used';
+
+  host.innerHTML = relevant.map(function (v) {
+    var val = state.vars[v.key] == null ? '' : state.vars[v.key];
+    return '<label class="block">' +
+      '<span class="flex items-center justify-between mb-1">' +
+        '<span class="text-[11px] font-bold text-slate-300">' + esc(v.label) + '</span>' +
+        '<span class="mono text-[10px] text-sky-400">' + esc(v.key) + '</span>' +
+      '</span>' +
+      '<input data-var="' + esc(v.key) + '" value="' + esc(val) + '" spellcheck="false" autocomplete="off" ' +
+        'placeholder="' + esc(v.hint) + '" ' +
+        'class="mono w-full text-xs rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-sky-500" ' +
+        'style="background:rgba(7,11,20,.7);border:1px solid var(--stroke);color:var(--txt)">' +
+    '</label>';
+  }).join('') || '<p class="text-[11px] text-slate-500">This protocol uses no parameters.</p>';
+
+  host.querySelectorAll('input[data-var]').forEach(function (input) {
+    input.addEventListener('input', function () {
+      state.vars[input.getAttribute('data-var')] = input.value;
+      saveAll();
+      renderSteps();
+      refreshHeader();
+    });
+  });
+}
+
+/* ── Recipe navigation ───────────────────────────────────────────────── */
+function renderNav() {
+  var nav = document.getElementById('recipeNav');
+  nav.innerHTML = RECIPES.map(function (r) {
+    var done = r.steps.filter(function (s) { return isDone(r.id, s.id); }).length;
+    var active = r.id === state.recipeId;
+    return '<button data-recipe="' + esc(r.id) + '" class="text-left rounded-xl px-3 py-2.5 transition-all flex items-start gap-3" ' +
+      'style="background:' + (active ? 'rgba(56,189,248,.12)' : 'transparent') + ';border:1px solid ' +
+      (active ? 'rgba(56,189,248,.4)' : 'transparent') + '">' +
+      '<span class="text-lg leading-none mt-0.5">' + r.icon + '</span>' +
+      '<span class="min-w-0 flex-1">' +
+        '<span class="block text-xs font-bold ' + (active ? 'text-sky-300' : 'text-slate-300') + '">' + esc(r.name) + '</span>' +
+        '<span class="block mono text-[10px] text-slate-500 mt-0.5">' + done + '/' + r.steps.length + ' steps</span>' +
+      '</span>' +
+    '</button>';
+  }).join('');
+
+  nav.querySelectorAll('button[data-recipe]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      state.recipeId = btn.getAttribute('data-recipe');
+      lsSet(LS_RECIPE, state.recipeId);
+      state.query = ''; document.getElementById('search').value = '';
+      renderAll();
+    });
+  });
+}
+
+/* ── Recipe header ───────────────────────────────────────────────────── */
+function refreshHeader() {
+  var r = currentRecipe();
+  var done = r.steps.filter(function (s) { return isDone(r.id, s.id); }).length;
+  var pct = r.steps.length ? Math.round(done / r.steps.length * 100) : 0;
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent = done + ' / ' + r.steps.length + '  ·  ' + pct + '%';
+}
+function renderHeader() {
+  var r = currentRecipe();
+  document.getElementById('recipeIcon').textContent = r.icon;
+  document.getElementById('recipeName').textContent = r.name;
+  document.getElementById('recipeBlurb').textContent = r.blurb;
+  document.getElementById('recipeMeta').innerHTML = (r.tags || []).map(function (t) {
+    return '<span class="chip text-slate-400">' + esc(t) + '</span>';
+  }).join('') + '<span class="chip text-sky-400">' + r.steps.length + ' steps</span>';
+  refreshHeader();
+}
+
+/* ── Steps ───────────────────────────────────────────────────────────── */
+function renderSteps() {
+  var host = document.getElementById('stepHost');
+  var r = currentRecipe();
+  var q = state.query.trim().toLowerCase();
+
+  var visible = r.steps.filter(function (s) {
+    if (!q) return true;
+    var hay = [s.title, s.why, cmdText(s), s.expect, s.verify, s.fail, s.warn].join(' ').toLowerCase();
+    return hay.indexOf(q) >= 0;
+  });
+
+  if (!visible.length) {
+    host.innerHTML = '<div class="glass rounded-2xl p-8 text-center text-sm text-slate-400">No steps match <span class="mono text-sky-300">' +
+      esc(state.query) + '</span>. <button id="clearQ" class="underline text-sky-400 ml-1">Clear filter</button></div>';
+    var cq = document.getElementById('clearQ');
+    if (cq) cq.addEventListener('click', function () { state.query = ''; document.getElementById('search').value = ''; renderSteps(); });
+    return;
+  }
+
+  host.innerHTML = visible.map(function (s, i) {
+    var done = isDone(r.id, s.id);
+    var text = cmdText(s);
+    var missing = unresolved(text);
+    var shellLabel = state.shell === 'win' ? 'PowerShell' : 'bash / zsh';
+    var onlyUnix = !s.cmd || !s.cmd.win;
+
+    var warnBlock = s.warn
+      ? '<div class="rounded-lg px-3 py-2 text-[11px] leading-relaxed" style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);color:#fcd34d">' +
+        s.warn.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') + '</div>'
+      : '';
+
+    var missingBlock = missing.length
+      ? '<div class="rounded-lg px-3 py-2 text-[11px] font-bold" style="background:rgba(251,113,133,.08);border:1px solid rgba(251,113,133,.3);color:#fda4af">' +
+        'Unresolved parameter' + (missing.length > 1 ? 's' : '') + ': ' +
+        missing.map(function (k) { return '<span class="mono">\u00ab' + esc(k) + '\u00bb</span>'; }).join(', ') +
+        ' — fill these in before pasting.</div>'
+      : '';
+
+    return '<article class="step glass rounded-2xl overflow-hidden fade-in' + (done ? ' done' : '') + '" data-step="' + esc(s.id) + '">' +
+
+      '<header class="flex items-start gap-3 p-4 md:p-5">' +
+        '<button class="step-check shrink-0 w-7 h-7 rounded-lg grid place-items-center mono text-xs font-bold transition-all" ' +
+          'data-check="' + esc(s.id) + '" title="Toggle complete" ' +
+          'style="background:' + (done ? 'rgba(52,211,153,.2)' : 'rgba(7,11,20,.7)') + ';border:1px solid ' +
+          (done ? 'rgba(52,211,153,.5)' : 'var(--stroke)') + ';color:' + (done ? '#34d399' : '#64748b') + '">' +
+          (done ? '\u2713' : (i + 1)) +
+        '</button>' +
+        '<div class="min-w-0 flex-1">' +
+          '<h3 class="step-title text-sm md:text-base font-bold text-slate-100">' + esc(s.title) + '</h3>' +
+          '<p class="text-[12px] text-slate-400 mt-1 leading-relaxed">' + esc(s.why) + '</p>' +
+        '</div>' +
+        '<span class="chip shrink-0 text-slate-500">' + esc(s.id) + '</span>' +
+      '</header>' +
+
+      '<div class="px-4 md:px-5 flex flex-col gap-3">' +
+        warnBlock + missingBlock +
+
+        '<div class="rounded-xl overflow-hidden" style="border:1px solid var(--stroke);background:rgba(4,7,14,.92)">' +
+          '<div class="flex items-center justify-between px-3 py-2" style="border-bottom:1px solid var(--stroke);background:rgba(15,23,42,.6)">' +
+            '<span class="mono text-[10px] font-bold uppercase tracking-widest text-slate-500">' +
+              esc(onlyUnix ? 'bash / zsh  ·  macOS · Linux · WSL' : shellLabel) + '</span>' +
+            '<span class="flex gap-2">' +
+              '<button class="copy-btn text-[10px] font-bold px-2.5 py-1 rounded-md" data-copy="' + esc(s.id) + '" ' +
+                'style="background:rgba(56,189,248,.14);border:1px solid rgba(56,189,248,.3);color:#7dd3fc">Copy</button>' +
+              '<button class="copy-step-btn text-[10px] font-bold px-2.5 py-1 rounded-md" data-copystep="' + esc(s.id) + '" ' +
+                'style="background:rgba(148,163,184,.12);border:1px solid var(--stroke);color:#cbd5e1">Copy with context</button>' +
+            '</span>' +
+          '</div>' +
+          '<pre class="cmd scroll"><code>' + renderCode(text) + '</code></pre>' +
+        '</div>' +
+
+        '<dl class="grid gap-2 sm:grid-cols-3 pb-4">' +
+          '<div class="rounded-lg px-3 py-2" style="background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.22)">' +
+            '<dt class="mono text-[9px] font-bold uppercase tracking-widest" style="color:#34d399">Expect</dt>' +
+            '<dd class="text-[11px] text-slate-300 mt-1 leading-relaxed">' + esc(s.expect) + '</dd></div>' +
+          '<div class="rounded-lg px-3 py-2" style="background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.22)">' +
+            '<dt class="mono text-[9px] font-bold uppercase tracking-widest" style="color:#fbbf24">Verify</dt>' +
+            '<dd class="text-[11px] text-slate-300 mt-1 leading-relaxed">' + esc(s.verify) + '</dd></div>' +
+          '<div class="rounded-lg px-3 py-2" style="background:rgba(251,113,133,.06);border:1px solid rgba(251,113,133,.22)">' +
+            '<dt class="mono text-[9px] font-bold uppercase tracking-widest" style="color:#fb7185">Recover</dt>' +
+            '<dd class="text-[11px] text-slate-300 mt-1 leading-relaxed whitespace-pre-wrap">' + esc(s.fail) + '</dd></div>' +
+        '</dl>' +
+      '</div>' +
+    '</article>';
+  }).join('');
+
+  host.querySelectorAll('button[data-check]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var id = b.getAttribute('data-check');
+      setDone(r.id, id, !isDone(r.id, id));
+      renderSteps(); renderNav(); refreshHeader();
+    });
+  });
+  host.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var step = r.steps.filter(function (s) { return s.id === b.getAttribute('data-copy'); })[0];
+      copy(cmdText(step), 'step ' + step.id);
+    });
+  });
+  host.querySelectorAll('button[data-copystep]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var step = r.steps.filter(function (s) { return s.id === b.getAttribute('data-copystep'); })[0];
+      var block = '### ' + step.id + ' — ' + step.title + '\n' +
+                  '# Purpose: ' + step.why + '\n' +
+                  '# Expected: ' + step.expect + '\n' +
+                  cmdText(step) + '\n';
+      copy(block, 'step ' + step.id + ' with context');
+    });
+  });
+}
+
+function renderAll() {
+  renderNav();
+  renderHeader();
+  renderVariables();
+  renderSteps();
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   EVENTS
+   ════════════════════════════════════════════════════════════════════════ */
+function renderShellToggle() {
+  document.querySelectorAll('.shell-btn').forEach(function (b) {
+    var active = b.getAttribute('data-shell') === state.shell;
+    b.style.background = active ? 'rgba(56,189,248,.2)' : 'transparent';
+    b.style.color      = active ? '#7dd3fc' : '#94a3b8';
+  });
+}
+document.getElementById('shellToggle').addEventListener('click', function (e) {
+  var b = e.target.closest('.shell-btn'); if (!b) return;
+  state.shell = b.getAttribute('data-shell');
+  lsSet(LS_SHELL, state.shell);
+  renderShellToggle(); renderSteps();
+});
+
+document.getElementById('search').addEventListener('input', function (e) {
+  state.query = e.target.value; renderSteps();
+});
+
+document.getElementById('btnCopyRemaining').addEventListener('click', function () {
+  var r = currentRecipe();
+  var remaining = r.steps.filter(function (s) { return !isDone(r.id, s.id); });
+  if (!remaining.length) return toast('Every step is already complete', 'ok');
+  var out = '# ── ' + r.name + ' ── remaining ' + remaining.length + ' step(s)\n' +
+            '# Generated by Terminal Command Engine · shell: ' + (state.shell === 'win' ? 'PowerShell' : 'bash/zsh') + '\n\n';
+  remaining.forEach(function (s) {
+    out += '# ─── ' + s.id + ' · ' + s.title + ' ───\n' + cmdText(s) + '\n\n';
+  });
+  copy(out, remaining.length + ' remaining steps');
+});
+
+document.getElementById('btnReset').addEventListener('click', function () {
+  var r = currentRecipe();
+  delete state.progress[r.id];
+  saveAll(); renderAll(); toast('Reset ' + r.name, 'ok');
+});
+
+document.getElementById('btnPrint').addEventListener('click', function () { window.print(); });
+
+document.addEventListener('keydown', function (e) {
+  if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
+    e.preventDefault(); document.getElementById('search').focus();
+  }
+  if (e.key === 'Escape' && document.activeElement === document.getElementById('search')) {
+    document.getElementById('search').value = ''; state.query = ''; renderSteps(); e.target.blur();
+  }
+});
+
+/* ── Boot ────────────────────────────────────────────────────────────── */
+loadAll();
+renderShellToggle();
+renderAll();
+</script>
+</body>
+</html>

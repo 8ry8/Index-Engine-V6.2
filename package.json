@@ -1,0 +1,17 @@
+{
+  "name": "index-engine",
+  "version": "9.1.0",
+  "private": true,
+  "description": "Enterprise Legal AI Archiver — metadata nomenclature engine, SPA, and terminal command engine. Tooling manifest only: the SPA itself is a single self-contained HTML file with no build step.",
+  "license": "MIT",
+  "scripts": {
+    "test": "node tools/tests/terminal-engine.test.js",
+    "serve": "npx --yes serve -l 8080 ."
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
