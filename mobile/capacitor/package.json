@@ -1,0 +1,25 @@
+{
+  "name": "index-engine-capacitor",
+  "version": "9.1.0.1",
+  "private": true,
+  "description": "Capacitor Android shell for the EFNAI Index Engine V9.1.0.1 SPA",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "npm run web:sync && node scripts/verify-project.mjs",
+    "web:sync": "node scripts/sync-web.mjs",
+    "android:add": "npm run web:sync && cap add android",
+    "android:sync": "npm run web:sync && cap sync android",
+    "android:debug": "npm run android:sync && node scripts/run-gradle.mjs assembleDebug",
+    "android:release": "npm run android:sync && node scripts/run-gradle.mjs bundleRelease",
+    "android:open": "cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.4.3",
+    "@capacitor/core": "8.4.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.4.3"
+  }
+}

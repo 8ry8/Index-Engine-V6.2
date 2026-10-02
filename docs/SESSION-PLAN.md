@@ -21,7 +21,7 @@
 | **2** | **v9.1.0.1 Core Engine** | Superseding SPA aligned to accessible master text, report | `v9/index.html` | ✅ **delivered; history recovery noted below** |
 | **3** | **SPA Deployment Guide** | Step-by-step SPA build → ship, report | `docs/GUIDE-SPA.md`, Pages workflow, PWA shell | ✅ **delivered; history recovery noted below** |
 | **4** | **Cryptography + Ledger Hardening** | AES-GCM backup, hash-chained ledger, IndexedDB, report | `v9/index.html` (extended) | ✅ **complete** |
-| **5** | **Android Application** | Capacitor wrapper (Kotlin/Compose alternative documented) | `docs/GUIDE-ANDROID.md`, `mobile/capacitor/android/` | ⏳ pending |
+| **5** | **Android Application** | Capacitor wrapper (Kotlin/Compose alternative documented) | `docs/GUIDE-ANDROID.md`, `mobile/capacitor/android/` | ✅ artifact delivered; native build gate queued for Session 7 CI |
 | **6** | **iOS Application** | Capacitor SPM wrapper (SwiftUI alternative documented) | `docs/GUIDE-IOS.md`, `mobile/capacitor/ios/` | ⏳ pending |
 | **7** | **CI/CD, Pages & Release** | SHA-pinned CI/Pages/mobile builds, checksum + provenance release, governance | `.github/workflows/lint.yml`, `pages.yml`, `release.yml` | ⏳ pending |
 
@@ -105,11 +105,15 @@
 
 ---
 
-## Session 5 — Android Application
+## Session 5 — Android Application ✅ ARTIFACT DELIVERED · BUILD GATE PENDING CI
 
-**Goal.** Ship `docs/GUIDE-ANDROID.md` and a clean-clone Capacitor project around the canonical V9 SPA; document Kotlin/Compose as an alternative.
+**Goal.** Ship a native Android shell around the canonical V9 SPA, an exact beginner guide, and a clean-clone build path.
 
-**Acceptance gate.** `./gradlew assembleDebug` must produce an installable APK from a clean clone.
+**Tracks.** Track A (Capacitor) is implemented in `mobile/capacitor/`. Track B (native Kotlin + Compose) is documented as an alternative architecture rather than a second divergent policy engine; it describes Room transactions, WorkManager, SAF URIs, and native exports.
+
+**Delivered.** Locked Capacitor 8.4.3 dependencies, generated Android project/Gradle wrapper, V9 asset sync, debug/release scripts, API 24/36 config, least-permission manifest, disabled backup rules, branded adaptive icon, project verifier, and `docs/GUIDE-ANDROID.md`. The 8.4.3 pin has zero npm audit advisories; 8.5.2 produced moderate CLI dependency advisories at implementation time.
+
+**Acceptance gate.** `npm ci && npm run android:debug` from `mobile/capacitor` must produce `android/app/build/outputs/apk/debug/app-debug.apk`. Project/config/security checks pass locally; this Linux workspace lacks JDK 21 and Android SDK, so the actual APK build is delegated to the Session 7 hosted Android CI job. See `docs/SESSION-5-REPORT.md`.
 
 ---
 
@@ -137,6 +141,6 @@
 | 2 | 2026-10-02 | 2026-10-02 | `v9/index.html`, `tools/tests/v9-engine.test.js`, `docs/SESSION-2-REPORT.md` | ✅ current V9 suite included in 24/24 |
 | 3 | 2026-10-02 | 2026-10-02 | `docs/GUIDE-SPA.md`, inline CSS/PWA sidecars, Pages workflow, `docs/SESSION-3-REPORT.md` | ✅ historical run recorded; current suite re-run in Session 4 |
 | 4 | 2026-10-02 | 2026-10-02 | `v9/index.html`, corrected audit/plan, `docs/SESSION-4-REPORT.md` | ✅ 21/21 Terminal + 24/24 V9; both builds and syntax checks passed |
-| 5 | — | — | — | — |
+| 5 | 2026-10-02 | 2026-10-02 | `mobile/capacitor/`, `docs/GUIDE-ANDROID.md`, `docs/SESSION-5-REPORT.md` | ✅ config/audit tests; native APK build pending Session 7 CI |
 | 6 | — | — | — | — |
 | 7 | — | — | — | — |
