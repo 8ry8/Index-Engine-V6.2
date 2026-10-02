@@ -22,9 +22,9 @@ Capacitor 8.4.3 is pinned across CLI/core/Android in the lockfile. It was select
 - `npm test` in `mobile/capacitor` — passed.
 - `npm audit --audit-level=moderate` — passed; 0 vulnerabilities.
 
-## Build limitation
+## Native build gate
 
-This workspace has Node 22 but no Java/JDK, Android SDK, or Android Studio. A local Gradle/APK build could not be run here; the report does not claim a debug APK was produced. The project includes the Gradle wrapper and API 36 configuration. Session 7 CI is planned to build it on a hosted Android runner.
+This Linux workspace has Node 22 but no Java/JDK, Android SDK, or Android Studio, so no APK was built locally. The Session 7 hosted CI run succeeded on the Android debug APK job and uploaded `index-engine-android-debug-c4c0b3bebcd88c8c9ca3ee72959a942efeee65b0`. See the [CI run](https://github.com/8ry8/Index-Engine-V6.2/actions/runs/37056486919) and [`docs/SESSION-7-REPORT.md`](SESSION-7-REPORT.md). This is an unsigned debug build artifact for verification, not a signed Play Store release.
 
 ## Policy and privacy
 

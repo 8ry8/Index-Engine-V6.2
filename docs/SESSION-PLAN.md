@@ -21,9 +21,9 @@
 | **2** | **v9.1.0.1 Core Engine** | Superseding SPA aligned to accessible master text, report | `v9/index.html` | ✅ **delivered; history recovery noted below** |
 | **3** | **SPA Deployment Guide** | Step-by-step SPA build → ship, report | `docs/GUIDE-SPA.md`, Pages workflow, PWA shell | ✅ **delivered; history recovery noted below** |
 | **4** | **Cryptography + Ledger Hardening** | AES-GCM backup, hash-chained ledger, IndexedDB, report | `v9/index.html` (extended) | ✅ **complete** |
-| **5** | **Android Application** | Capacitor wrapper (Kotlin/Compose alternative documented) | `docs/GUIDE-ANDROID.md`, `mobile/capacitor/android/` | ✅ committed (`cdc53a6`); build gate queued for Session 7 CI |
-| **6** | **iOS Application** | Capacitor SPM wrapper (SwiftUI alternative documented) | `docs/GUIDE-IOS.md`, `mobile/capacitor/ios/` | ✅ committed (`1822dc6`); Xcode build gate queued for Session 7 CI |
-| **7** | **CI/CD, Pages & Release** | SHA-pinned CI/Pages/mobile builds, checksum + provenance release, governance | `.github/workflows/lint.yml`, `pages.yml`, `release.yml` | 🔄 implementation delivered; hosted run/main Pages gate pending |
+| **5** | **Android Application** | Capacitor wrapper (Kotlin/Compose alternative documented) | `docs/GUIDE-ANDROID.md`, `mobile/capacitor/android/` | ✅ committed (`cdc53a6`); debug APK gate passed in hosted Session 7 CI |
+| **6** | **iOS Application** | Capacitor SPM wrapper (SwiftUI alternative documented) | `docs/GUIDE-IOS.md`, `mobile/capacitor/ios/` | ✅ committed (`1822dc6`); Simulator and unsigned archive gates passed in hosted CI |
+| **7** | **CI/CD, Pages & Release** | SHA-pinned CI/Pages/mobile builds, checksum + provenance release, governance | `.github/workflows/lint.yml`, `pages.yml`, `release.yml` | ✅ hosted CI passed; post-merge Pages and tagged release gates pending |
 
 ---
 
@@ -105,7 +105,7 @@
 
 ---
 
-## Session 5 — Android Application ✅ ARTIFACT DELIVERED · BUILD GATE PENDING CI
+## Session 5 — Android Application ✅ ANDROID DEBUG APK BUILT IN HOSTED CI
 
 **Goal.** Ship a native Android shell around the canonical V9 SPA, an exact beginner guide, and a clean-clone build path.
 
@@ -113,11 +113,11 @@
 
 **Delivered.** Locked Capacitor 8.4.3 dependencies, generated Android project/Gradle wrapper, V9 asset sync, debug/release scripts, API 24/36 config, least-permission manifest, disabled backup rules, branded adaptive icon, project verifier, and `docs/GUIDE-ANDROID.md`. The 8.4.3 pin has zero npm audit advisories; 8.5.2 produced moderate CLI dependency advisories at implementation time.
 
-**Acceptance gate.** `npm ci && npm run android:debug` from `mobile/capacitor` must produce `android/app/build/outputs/apk/debug/app-debug.apk`. Project/config/security checks pass locally; this Linux workspace lacks JDK 21 and Android SDK, so the actual APK build is delegated to the Session 7 hosted Android CI job. See `docs/SESSION-5-REPORT.md`.
+**Acceptance gate — passed in hosted CI.** Local project/config/security checks pass; this Linux workspace lacks JDK 21 and Android SDK, so no APK was built locally. Session 7 run [`37056486919`](https://github.com/8ry8/Index-Engine-V6.2/actions/runs/37056486919) built and uploaded `index-engine-android-debug-c4c0b3bebcd88c8c9ca3ee72959a942efeee65b0`. It is an unsigned debug verification artifact, not a Play Store release. See `docs/SESSION-5-REPORT.md` and `docs/SESSION-7-REPORT.md`.
 
 ---
 
-## Session 6 — iOS Application ✅ ARTIFACT DELIVERED · XCODE GATE PENDING CI
+## Session 6 — iOS Application ✅ SIMULATOR + UNSIGNED ARCHIVE BUILT IN HOSTED CI
 
 **Goal.** Ship a native iOS shell around the canonical V9 SPA, with a beginner guide and an explicit archive acceptance path.
 
@@ -125,17 +125,17 @@
 
 **Delivered.** iOS Xcode project with bundle ID `org.efnai.indexengine`, deployment target 15.0, version `9.1.0.1` / build `90101`, branded icon/launch art, sync/build/archive scripts, iOS static verification, and `docs/GUIDE-IOS.md`. The project pins native Capacitor 8.4.3 via SPM and has no CocoaPods requirement.
 
-**Acceptance gate.** On macOS with Xcode 26+, `cd mobile/capacitor && npm ci && npm run ios:archive:unsigned` must produce `ios/App/build/Index-Engine.xcarchive`; CI also runs `npm run ios:simulator`. The Linux workspace passed `npm run ios:sync`, `npm test`, and `npm audit --audit-level=moderate` (zero advisories), but cannot run Xcode. The unsigned archive is compile verification only, not a signed IPA. See `docs/SESSION-6-REPORT.md`.
+**Acceptance gate — passed in hosted CI.** Session 7 run [`37056486919`](https://github.com/8ry8/Index-Engine-V6.2/actions/runs/37056486919) passed both `npm run ios:simulator` and `npm run ios:archive:unsigned`, then uploaded `index-engine-ios-unsigned-archive-c4c0b3bebcd88c8c9ca3ee72959a942efeee65b0`. Linux local sync/config/audit checks also passed. The unsigned archive verifies compilation only; it is not a signed IPA. See `docs/SESSION-6-REPORT.md` and `docs/SESSION-7-REPORT.md`.
 
 ---
 
-## Session 7 — CI/CD, Pages & Release 🔄 IMPLEMENTATION DELIVERED · HOSTED GATES PENDING
+## Session 7 — CI/CD, Pages & Release ✅ HOSTED CI PASSED · PAGES/RELEASE GATES PENDING
 
 **Goal.** Harden static deployment/CI, run the Android/iOS native acceptance jobs, and provide a verifiable, versioned release process.
 
 **Delivered.** SHA-pinned `lint.yml`, `pages.yml`, and tag-triggered `release.yml`; HTML validation plus 21/21 Terminal and 24/24 V9 headless tests; root/mobile dependency audits; Android API 36 debug APK build/upload; Xcode 26+ Simulator build and unsigned archive/upload; cross-platform version checks; Gradle distribution and wrapper-JAR checksum validation; versioned SPA ZIP, SHA-256 file, and GitHub SLSA build provenance; `CODEOWNERS`, `SECURITY.md`, `CONTRIBUTING.md`, Dependabot, PR template, and release guide. Removed the inert `blank.yml`. The shipped SPA no longer needs CDN SRI because Tailwind is inlined.
 
-**Acceptance gates.** Locally, `npm run lint`, `npm run check:build`, `npm audit --audit-level=moderate`, mobile verifier/sync/audit, action-pin checks, and workflow YAML formatting must pass. The hosted `CI and Lint` run must verify the APK and Xcode archive jobs. The Pages workflow deploys only `v9/` from `main`; its production URL gate can be marked passed only after merge and a green deployment at `https://<user>.github.io/Index-Engine-V6.2/`. No remote Pages deployment or tagged release is claimed from a feature-branch checkout. See `docs/SESSION-7-REPORT.md` and `docs/GUIDE-RELEASE.md`.
+**Acceptance gates.** Local lint, reproducible artifact builds, dependency audits, mobile sync/static checks, action-pin checks, workflow parsing/formatting, and release-package/checksum smoke all pass. Hosted `CI and Lint` run [`37056486919`](https://github.com/8ry8/Index-Engine-V6.2/actions/runs/37056486919) passed the Android APK and iOS Simulator/unsigned archive jobs and uploaded their artifacts. The Pages workflow deploys only `v9/` from `main`; its production URL gate can be marked passed only after merge and a green deployment at `https://<user>.github.io/Index-Engine-V6.2/`. No tagged release or hosted provenance attestation is claimed. See `docs/SESSION-7-REPORT.md` and `docs/GUIDE-RELEASE.md`.
 
 ---
 
@@ -147,6 +147,6 @@
 | 2 | 2026-10-02 | 2026-10-02 | `v9/index.html`, `tools/tests/v9-engine.test.js`, `docs/SESSION-2-REPORT.md` | ✅ current V9 suite included in 24/24 |
 | 3 | 2026-10-02 | 2026-10-02 | `docs/GUIDE-SPA.md`, inline CSS/PWA sidecars, Pages workflow, `docs/SESSION-3-REPORT.md` | ✅ historical run recorded; current suite re-run in Session 4 |
 | 4 | 2026-10-02 | 2026-10-02 | `v9/index.html`, corrected audit/plan, `docs/SESSION-4-REPORT.md` | ✅ 21/21 Terminal + 24/24 V9; both builds and syntax checks passed |
-| 5 | 2026-10-02 | 2026-10-02 | `mobile/capacitor/`, `docs/GUIDE-ANDROID.md`, `docs/SESSION-5-REPORT.md` | ✅ config/audit tests; native APK build pending Session 7 CI; commit `cdc53a6` |
-| 6 | 2026-10-02 | 2026-10-02 | `mobile/capacitor/ios/`, `docs/GUIDE-IOS.md`, `docs/SESSION-6-REPORT.md` | ✅ config/sync/audit tests; Xcode simulator/archive pending Session 7 CI; commit `1822dc6` |
-| 7 | 2026-10-02 | 2026-10-02 | SHA-pinned workflows, repository governance, version/checksum/provenance release process, `docs/SESSION-7-REPORT.md` | 🔄 local validation passed; hosted native CI and post-merge Pages deployment pending |
+| 5 | 2026-10-02 | 2026-10-02 | `mobile/capacitor/`, `docs/GUIDE-ANDROID.md`, `docs/SESSION-5-REPORT.md` | ✅ local config/audit plus hosted APK build pass (run `37056486919`); commit `cdc53a6` |
+| 6 | 2026-10-02 | 2026-10-02 | `mobile/capacitor/ios/`, `docs/GUIDE-IOS.md`, `docs/SESSION-6-REPORT.md` | ✅ local config/sync/audit and hosted Simulator/archive pass (run `37056486919`); commit `1822dc6` |
+| 7 | 2026-10-02 | 2026-10-02 | SHA-pinned workflows, repository governance, version/checksum/provenance release process, `docs/SESSION-7-REPORT.md` | ✅ local validation + hosted CI passed; main Pages deployment and tagged release pending |

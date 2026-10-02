@@ -2,7 +2,7 @@
 
 - **Date:** 2026-10-02
 - **Branch:** `arena/01a0fc76-index-engine-v6-2`
-- **Status:** Workflow, governance, and release artifacts delivered; hosted build and post-merge Pages gates remain external checks.
+- **Status:** Workflow, governance, and release artifacts delivered; hosted CI and both native build gates passed. Post-merge Pages and tagged release gates remain.
 
 ## Scope delivered
 
@@ -26,12 +26,14 @@
 | Workflow formatting | Passed with Prettier 3.6.2; YAML syntax is parsed in the committed CI checker |
 | Action pin scan | Passed; all 20 external workflow-action references use full 40-character commit SHAs and version comments |
 | Release packaging smoke | Passed locally: ZIP integrity and SHA-256 self-check; no release/tag was published |
-| Android APK build / Xcode Simulator and archive | Not run in this Linux workspace; CI jobs are configured to execute them on hosted runners |
+| Hosted CI [`37056486919`](https://github.com/8ry8/Index-Engine-V6.2/actions/runs/37056486919), commit `c4c0b3b` | Passed all four jobs: source, mobile config, Android debug APK, and iOS Simulator + unsigned archive |
+| Native build artifacts | Uploaded `index-engine-android-debug-c4c0b3bebcd88c8c9ca3ee72959a942efeee65b0` and `index-engine-ios-unsigned-archive-c4c0b3bebcd88c8c9ca3ee72959a942efeee65b0` in the linked run |
+| Local native builds | Not available in this Linux workspace; hosted jobs passed and uploaded both verification artifacts |
 | Production Pages deployment | Not run from this feature branch; Pages remains main-only |
 
 ## Acceptance gates and limits
 
-The branch now contains CI jobs for the Session 5 Android APK and Session 6 iOS Simulator/archive gates. A successful hosted workflow run must be inspected before those gates are marked passed. The production Pages URL acceptance gate additionally requires merging to `main`, enabling GitHub Pages with **GitHub Actions** as the source, and observing a green deployment. A tagged release workflow has been implemented and its package/checksum command smoke-tested locally, but no tag, GitHub Release, or hosted provenance attestation was created during this session.
+The `CI and Lint` workflow passed on implementation commit `c4c0b3b` ([run 37056486919](https://github.com/8ry8/Index-Engine-V6.2/actions/runs/37056486919)); Android APK and iOS Simulator/unsigned archive gates passed, with both CI artifacts uploaded. The production Pages URL acceptance gate still requires merging to `main`, enabling GitHub Pages with **GitHub Actions** as the source, and observing a green deployment. The tagged release workflow is implemented and its package/checksum command was smoke-tested locally, but no tag, GitHub Release, or hosted provenance attestation was created during this session.
 
 ## Commit
 

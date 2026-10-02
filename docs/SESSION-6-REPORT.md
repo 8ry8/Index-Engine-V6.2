@@ -3,7 +3,7 @@
 - **Date:** 2026-10-02
 - **Branch:** `arena/01a0fc76-index-engine-v6-2`
 - **Deliverable:** Capacitor iOS project around canonical V9.1.0.1 SPA
-- **Status:** Project, guide, sync, and static verification delivered; Xcode Simulator/archive gate awaits macOS CI.
+- **Status:** Project, guide, sync, and static verification delivered; hosted Xcode Simulator and unsigned archive gates passed in Session 7 CI.
 
 ## Scope delivered
 
@@ -12,7 +12,7 @@
 - Bundled branded 1024×1024 iOS app icon and dark launch-screen artwork. Runtime HTML and copied web assets continue to sync from `v9/index.html`; generated `public/`, `www/`, config, and build outputs are ignored.
 - Added clean-clone scripts for iOS sync, Xcode Simulator build, and an explicitly unsigned Xcode Release archive; extended the cross-platform mobile verifier to validate iOS identity, target, versions, SPM pin, permission declarations, icon size, and Android security settings.
 - Added `docs/GUIDE-IOS.md` with Xcode prerequisites, exact build/archive commands, signing and export guidance, a device/data acceptance checklist, privacy limits, troubleshooting, and a SwiftUI alternative architecture.
-- Updated `docs/SESSION-PLAN.md` with Session 6 delivery and the pending native-toolchain acceptance gate.
+- Updated `docs/SESSION-PLAN.md` with Session 6 delivery and its native-toolchain acceptance gate.
 
 ## Verification
 
@@ -23,8 +23,8 @@
 | `npm test` in `mobile/capacitor/` | Passed; validates Android + iOS project metadata and current SPA synchronization |
 | `npm run android:sync` | Passed; shared mobile package remains synchronized |
 | `npm audit --audit-level=moderate` | Passed; 0 vulnerabilities |
-| Xcode Simulator build | Not run: this workspace is Linux and has no Xcode/iOS SDK |
-| Unsigned Xcode archive | Not run locally; queued for Session 7 hosted macOS CI |
+| Xcode Simulator build | Passed in [hosted CI run 37056486919](https://github.com/8ry8/Index-Engine-V6.2/actions/runs/37056486919); unsigned simulator-build job completed |
+| Unsigned Xcode archive | Passed in hosted macOS CI; uploaded as `index-engine-ios-unsigned-archive-c4c0b3bebcd88c8c9ca3ee72959a942efeee65b0` |
 | Signed device/TestFlight distribution | Not run; requires an Apple Developer team and signing assets |
 
 ## Acceptance gate and limits
@@ -37,7 +37,7 @@ npm ci
 npm run ios:archive:unsigned
 ```
 
-On success it produces `mobile/capacitor/ios/App/build/Index-Engine.xcarchive`. Because the command deliberately disables code signing, that archive verifies the Xcode archive target but is not a distributable IPA. Session 7 macOS CI must run the Simulator build and unsigned archive and capture both results before this native-build acceptance gate is marked passed. Actual Files/share-provider behavior, backup behavior, VoiceOver/Dynamic Type, signing, TestFlight upload, and App Store privacy disclosures still require device/team-level checks.
+On success it produces `mobile/capacitor/ios/App/build/Index-Engine.xcarchive`. Because the command deliberately disables code signing, that archive verifies the Xcode archive target but is not a distributable IPA. Session 7 hosted macOS CI ran the Simulator build and unsigned archive successfully and uploaded the archive artifact; see [run 37056486919](https://github.com/8ry8/Index-Engine-V6.2/actions/runs/37056486919). The native compile/archive gate is passed. Actual Files/share-provider behavior, backup behavior, VoiceOver/Dynamic Type, signing, TestFlight upload, and App Store privacy disclosures still require device/team-level checks.
 
 ## Commit
 
