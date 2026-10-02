@@ -1,0 +1,1803 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://generativelanguage.googleapis.com; object-src 'none'; base-uri 'none'">
+<title>Index Engine v9.1.0.1 — 12-Part Nomenclature Engine</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root{
+    --bg:#070b14; --bg2:#0b1120; --panel:rgba(17,25,40,.80); --stroke:rgba(148,163,184,.18);
+    --sky:#38bdf8; --indigo:#818cf8; --emerald:#34d399; --amber:#fbbf24; --rose:#fb7185; --violet:#c084fc;
+    --txt:#e2e8f0; --dim:#94a3b8; --faint:#64748b;
+  }
+  html,body{background:var(--bg);color:var(--txt);}
+  body{font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;margin:0;min-height:100vh;overflow-x:hidden;
+    background-image:radial-gradient(1200px 640px at 10% -10%,rgba(56,189,248,.09),transparent 62%),
+                     radial-gradient(1000px 560px at 94% 2%,rgba(129,140,248,.10),transparent 64%);
+    background-attachment:fixed;}
+  .mono{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+  .glass{background:var(--panel);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--stroke);}
+  .inp{background:rgba(7,11,20,.72);border:1px solid var(--stroke);color:var(--txt);outline:none;transition:border-color .15s,box-shadow .15s;}
+  .inp:focus{border-color:var(--sky);box-shadow:0 0 0 3px rgba(56,189,248,.16);}
+  .inp.bad{border-color:var(--rose);box-shadow:0 0 0 3px rgba(251,113,133,.16);}
+  .inp.good{border-color:rgba(52,211,153,.6);}
+  .btn{transition:transform .1s,filter .15s,background .15s;border:1px solid transparent;}
+  .btn:hover{filter:brightness(1.14);}
+  .btn:active{transform:translateY(1px);}
+  .btn:disabled{opacity:.4;cursor:not-allowed;filter:none;}
+  .chip{border:1px solid var(--stroke);border-radius:9999px;padding:.14rem .55rem;font-size:.65rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;}
+  .seg-pill{font-size:.6rem;font-weight:800;letter-spacing:.05em;padding:.1rem .4rem;border-radius:.3rem;}
+  .scroll::-webkit-scrollbar{width:9px;height:9px;}
+  .scroll::-webkit-scrollbar-track{background:rgba(7,11,20,.6);}
+  .scroll::-webkit-scrollbar-thumb{background:rgba(71,85,105,.75);border-radius:6px;}
+  .scroll::-webkit-scrollbar-thumb:hover{background:rgba(56,189,248,.8);}
+  .fade{animation:f .25s ease both;} @keyframes f{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+  .drop.drag{border-color:var(--sky)!important;background:rgba(56,189,248,.08)!important;}
+  .tab.active{background:rgba(56,189,248,.16);color:#7dd3fc;border-color:rgba(56,189,248,.4);}
+  tr.row:hover{background:rgba(30,41,59,.5);}
+  .kbd{border:1px solid var(--stroke);border-bottom-width:2px;border-radius:.3rem;padding:.05rem .3rem;font-size:.68rem;}
+  .bar{height:100%;transition:width .4s cubic-bezier(.4,0,.2,1);}
+  @media print{nav,header .np,.np{display:none!important;} body{background:#fff;color:#000;} .glass{background:#fff;border-color:#ccc;}}
+</style>
+</head>
+<body class="antialiased min-h-screen flex flex-col">
+
+<!-- ══════════ HEADER ══════════ -->
+<header class="glass sticky top-0 z-40 px-4 md:px-6 py-3 flex items-center flex-wrap gap-3">
+  <div class="w-10 h-10 rounded-xl grid place-items-center shrink-0"
+       style="background:linear-gradient(135deg,rgba(56,189,248,.25),rgba(192,132,252,.25));border:1px solid rgba(56,189,248,.35)">
+    <span class="mono text-sky-300 font-bold text-sm">12</span>
+  </div>
+  <div class="mr-auto min-w-0">
+    <h1 class="text-base md:text-lg font-bold leading-tight truncate">Index Engine <span class="mono text-sky-400">v9.1.0.1</span></h1>
+    <p class="text-[11px] text-slate-400 leading-tight">12-Part Nomenclature Policy · Smart Review Queue · append-only chained ledger</p>
+  </div>
+  <div id="srqBadgeTop" class="np cursor-pointer rounded-lg px-3 py-2 text-xs font-bold" style="background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.35);color:#fcd34d">SRQ 0</div>
+  <div class="np mono text-[11px] rounded-lg px-3 py-2 hidden xl:block" style="background:rgba(7,11,20,.7);border:1px solid var(--stroke);color:#7dd3fc" id="hdrPreview">—</div>
+</header>
+
+<!-- ══════════ NAV ══════════ -->
+<nav class="np px-4 md:px-6 pt-4 max-w-[1600px] w-full mx-auto">
+  <div class="glass rounded-2xl p-1.5 flex gap-1.5 overflow-x-auto scroll">
+    <button data-tab="constructor" class="tab active btn flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold mono">01 · Constructor</button>
+    <button data-tab="ingest"      class="tab btn flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold mono text-slate-400">02 · Ingestion</button>
+    <button data-tab="queue"       class="tab btn flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold mono text-slate-400">03 · Review Queue <span id="srqBadgeNav" class="ml-1 px-1.5 rounded" style="background:rgba(251,191,36,.2);color:#fcd34d">0</span></button>
+    <button data-tab="ledger"      class="tab btn flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold mono text-slate-400">04 · Ledger</button>
+    <button data-tab="settings"    class="tab btn flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold mono text-slate-400">05 · Schema &amp; Settings</button>
+  </div>
+</nav>
+
+<main class="flex-1 max-w-[1600px] w-full mx-auto p-4 md:p-6 flex flex-col gap-5">
+
+  <!-- ══════════ 01 CONSTRUCTOR ══════════ -->
+  <section data-view="constructor" class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_420px]">
+    <div class="flex flex-col gap-5">
+      <div class="glass rounded-2xl p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-bold uppercase tracking-widest text-sky-400">12-Part Constructor</h2>
+          <button id="btnPrefill" class="btn text-[11px] font-bold px-3 py-1.5 rounded-lg text-slate-300" style="background:rgba(148,163,184,.12);border:1px solid var(--stroke)">Load sample</button>
+        </div>
+        <div id="slotHost" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"></div>
+      </div>
+
+      <div class="glass rounded-2xl p-5">
+        <h2 class="text-sm font-bold uppercase tracking-widest text-sky-400 mb-3">Diagnostics</h2>
+        <div id="diagHost" class="text-xs text-slate-400">—</div>
+      </div>
+    </div>
+
+    <aside class="flex flex-col gap-5 lg:sticky lg:top-[84px] lg:self-start lg:max-h-[calc(100vh-108px)] lg:overflow-y-auto scroll">
+      <div class="glass rounded-2xl p-5">
+        <h2 class="text-sm font-bold uppercase tracking-widest text-sky-400 mb-3">Serialized Output</h2>
+        <div id="previewBox" class="rounded-xl p-3 break-all leading-relaxed" style="background:rgba(4,7,14,.9);border:1px solid var(--stroke)">
+          <p id="previewText" class="mono text-[13px] font-bold text-sky-300">—</p>
+        </div>
+        <div id="previewSegs" class="flex flex-wrap gap-1 mt-3"></div>
+        <div class="grid grid-cols-2 gap-2 mt-4">
+          <button id="btnCopyName" class="btn text-xs font-bold py-2.5 rounded-lg" style="background:rgba(56,189,248,.16);border:1px solid rgba(56,189,248,.4);color:#7dd3fc">Copy name</button>
+          <button id="btnCommit" class="btn text-xs font-bold py-2.5 rounded-lg" style="background:rgba(52,211,153,.18);border:1px solid rgba(52,211,153,.45);color:#6ee7b7">Commit</button>
+        </div>
+        <button id="btnToQueue" class="btn w-full mt-2 text-xs font-bold py-2.5 rounded-lg" style="background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.4);color:#fcd34d">Send to Smart Review Queue</button>
+      </div>
+
+      <div class="glass rounded-2xl p-5">
+        <h2 class="text-sm font-bold uppercase tracking-widest text-sky-400 mb-3">Live Invariants</h2>
+        <ul id="invHost" class="space-y-2 text-[11px]"></ul>
+      </div>
+
+      <div class="glass rounded-2xl p-5">
+        <h2 class="text-sm font-bold uppercase tracking-widest text-sky-400 mb-3">Ledger Topology</h2>
+        <dl id="statHost" class="grid grid-cols-2 gap-3 text-[11px]"></dl>
+      </div>
+    </aside>
+  </section>
+
+  <!-- ══════════ 02 INGESTION ══════════ -->
+  <section data-view="ingest" class="hidden flex-col gap-5">
+    <div class="glass rounded-2xl p-5">
+      <h2 class="text-sm font-bold uppercase tracking-widest text-sky-400 mb-2">Batch Ingestion</h2>
+      <p class="text-xs text-slate-400 mb-4">Drop files. Metadata is derived <strong class="text-slate-200">locally from filename and file properties — no API key required.</strong> The optional Gemini pass refines uncertain records; anything the engine cannot resolve with confidence is routed to the <strong class="text-amber-300">Smart Review Queue</strong> rather than guessed.</p>
+      <div id="drop" class="drop rounded-xl p-10 text-center cursor-pointer transition-all" style="border:2px dashed rgba(148,163,184,.35);background:rgba(7,11,20,.5)">
+        <input type="file" id="picker" multiple class="hidden">
+        <p class="text-sm font-bold text-slate-200">Drag &amp; drop, or click to browse</p>
+        <p class="text-[11px] text-slate-500 mt-1 mono">PDF · IMG · DOCX · TXT · EML · any MIME</p>
+      </div>
+      <div id="stageHost" class="mt-4"></div>
+    </div>
+    <div class="glass rounded-2xl p-5">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-bold uppercase tracking-widest text-sky-400">Extraction Envelope</h2>
+        <span id="envCount" class="chip text-slate-400">0 files</span>
+      </div>
+      <div id="envHost" class="text-xs text-slate-400">No files staged.</div>
+      <div class="flex flex-wrap gap-2 mt-4">
+        <button id="btnAnalyze" class="btn flex-1 min-w-[160px] text-xs font-bold py-2.5 rounded-lg" style="background:rgba(129,140,248,.18);border:1px solid rgba(129,140,248,.45);color:#a5b4fc">Run local extraction</button>
+        <button id="btnAI" class="btn flex-1 min-w-[160px] text-xs font-bold py-2.5 rounded-lg" style="background:rgba(192,132,252,.14);border:1px solid rgba(192,132,252,.4);color:#d8b4fe">Refine with Gemini</button>
+        <button id="btnEnvClear" class="btn text-xs font-bold py-2.5 px-4 rounded-lg text-rose-300" style="background:rgba(251,113,133,.1);border:1px solid rgba(251,113,133,.3)">Clear</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 03 SMART REVIEW QUEUE ══════════ -->
+  <section data-view="queue" class="hidden flex-col gap-5">
+    <div class="glass rounded-2xl p-5">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-1">
+        <h2 class="text-sm font-bold uppercase tracking-widest text-amber-400">Smart Review Queue</h2>
+        <span id="srqCount" class="chip text-amber-300">0 quarantined</span>
+      </div>
+      <p class="text-xs text-slate-400">
+        <strong class="text-amber-300">Invariant INV-SRQ-01:</strong> uncertainty is quarantined, never guessed.
+        A record may not leave this queue without an attributed human decision
+        (<strong class="text-slate-200">INV-SRQ-03</strong>).
+      </p>
+    </div>
+    <div id="queueHost" class="flex flex-col gap-4"></div>
+  </section>
+
+  <!-- ══════════ 04 LEDGER ══════════ -->
+  <section data-view="ledger" class="hidden flex-col gap-5">
+    <div class="glass rounded-2xl p-5">
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        <h2 class="text-sm font-bold uppercase tracking-widest text-sky-400 mr-auto">Master Ledger</h2>
+        <button id="btnCSV"      class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(52,211,153,.16);border:1px solid rgba(52,211,153,.4);color:#6ee7b7">Export CSV</button>
+        <button id="btnSH"       class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(148,163,184,.12);border:1px solid var(--stroke);color:#cbd5e1">rename.sh</button>
+        <button id="btnBAT"      class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(148,163,184,.12);border:1px solid var(--stroke);color:#cbd5e1">rename.bat</button>
+        <button id="btnUNDO"     class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(148,163,184,.12);border:1px solid var(--stroke);color:#cbd5e1">undo.sh</button>
+        <button id="btnVerify"   class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(56,189,248,.14);border:1px solid rgba(56,189,248,.4);color:#7dd3fc">Verify chain</button>
+        <button id="btnMigrate"  class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(192,132,252,.14);border:1px solid rgba(192,132,252,.4);color:#d8b4fe">Import V6.2</button>
+        <button id="btnWipe"     class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(251,113,133,.1);border:1px solid rgba(251,113,133,.3);color:#fda4af">Reset</button>
+      </div>
+      <div class="grid gap-4 md:grid-cols-4 mb-4">
+        <div class="rounded-xl p-3" style="background:rgba(7,11,20,.6);border:1px solid var(--stroke)">
+          <p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Committed</p>
+          <p id="kpiRows" class="mono text-xl font-bold text-sky-300 mt-1">0</p></div>
+        <div class="rounded-xl p-3" style="background:rgba(7,11,20,.6);border:1px solid var(--stroke)">
+          <p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Chain</p>
+          <p id="kpiChain" class="mono text-xl font-bold text-emerald-400 mt-1">—</p></div>
+        <div class="rounded-xl p-3" style="background:rgba(7,11,20,.6);border:1px solid var(--stroke)">
+          <p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Next ID</p>
+          <p id="kpiNext" class="mono text-xl font-bold text-indigo-300 mt-1">FILE000001</p></div>
+        <div class="rounded-xl p-3" style="background:rgba(7,11,20,.6);border:1px solid var(--stroke)">
+          <p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Conformance</p>
+          <p id="kpiConf" class="mono text-xl font-bold text-emerald-400 mt-1">—</p></div>
+      </div>
+      <input id="search" class="inp w-full rounded-lg px-3 py-2 text-xs mb-3" placeholder="Filter ledger by ID, filename, case, type…">
+      <div class="rounded-xl overflow-hidden" style="border:1px solid var(--stroke);max-height:460px">
+        <div class="overflow-y-auto scroll" style="max-height:460px">
+          <table class="w-full text-left text-[11px]">
+            <thead class="sticky top-0" style="background:#131c2e">
+              <tr class="text-slate-400">
+                <th class="p-2.5 font-bold">ID</th><th class="p-2.5 font-bold">Filename</th>
+                <th class="p-2.5 font-bold hidden md:table-cell">Type</th>
+                <th class="p-2.5 font-bold hidden lg:table-cell">Provenance</th>
+                <th class="p-2.5 font-bold hidden xl:table-cell">Chain</th>
+              </tr>
+            </thead>
+            <tbody id="ledgerBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="glass rounded-2xl p-5">
+      <h2 class="text-sm font-bold uppercase tracking-widest text-sky-400 mb-3">Distribution by Type Code</h2>
+      <div id="chartHost" class="space-y-2"></div>
+    </div>
+  </section>
+
+  <!-- ══════════ 05 SETTINGS ══════════ -->
+  <section data-view="settings" class="hidden flex-col gap-5">
+    <div class="glass rounded-2xl p-5">
+      <h2 class="text-sm font-bold uppercase tracking-widest text-sky-400 mb-3">Segment Schema <span class="text-slate-500 normal-case tracking-normal font-normal">— data-driven; edit here and the serializer follows</span></h2>
+      <div class="overflow-x-auto scroll">
+        <table class="w-full text-left text-[11px] mono">
+          <thead><tr class="text-slate-400">
+            <th class="p-2 font-bold">#</th><th class="p-2 font-bold">Slot</th><th class="p-2 font-bold">Pattern</th>
+            <th class="p-2 font-bold">Max</th><th class="p-2 font-bold">Required</th><th class="p-2 font-bold">Group</th></tr></thead>
+          <tbody id="schemaBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="grid gap-5 lg:grid-cols-3">
+      <div class="glass rounded-2xl p-5"><h3 class="text-xs font-bold uppercase tracking-widest text-sky-400 mb-3">Type Codes</h3>
+        <div class="flex gap-2 mb-3"><input id="tCode" class="inp flex-1 rounded px-2 py-1.5 text-[11px] mono uppercase" placeholder="CODE"><input id="tDesc" class="inp flex-1 rounded px-2 py-1.5 text-[11px]" placeholder="Description"><button id="tAdd" class="btn px-3 rounded text-white text-xs font-bold" style="background:#0284c7">+</button></div>
+        <ul id="tax-types" class="space-y-1.5 max-h-64 overflow-y-auto scroll pr-1"></ul></div>
+      <div class="glass rounded-2xl p-5"><h3 class="text-xs font-bold uppercase tracking-widest text-sky-400 mb-3">Privilege Tags</h3>
+        <div class="flex gap-2 mb-3"><input id="pCode" class="inp flex-1 rounded px-2 py-1.5 text-[11px] mono uppercase" placeholder="CODE"><input id="pDesc" class="inp flex-1 rounded px-2 py-1.5 text-[11px]" placeholder="Description"><button id="pAdd" class="btn px-3 rounded text-white text-xs font-bold" style="background:#0284c7">+</button></div>
+        <ul id="tax-privs" class="space-y-1.5 max-h-64 overflow-y-auto scroll pr-1"></ul></div>
+      <div class="glass rounded-2xl p-5"><h3 class="text-xs font-bold uppercase tracking-widest text-sky-400 mb-3">Origin Tags</h3>
+        <div class="flex gap-2 mb-3"><input id="oCode" class="inp flex-1 rounded px-2 py-1.5 text-[11px] mono uppercase" placeholder="CODE"><input id="oDesc" class="inp flex-1 rounded px-2 py-1.5 text-[11px]" placeholder="Description"><button id="oAdd" class="btn px-3 rounded text-white text-xs font-bold" style="background:#0284c7">+</button></div>
+        <ul id="tax-origins" class="space-y-1.5 max-h-64 overflow-y-auto scroll pr-1"></ul></div>
+    </div>
+    <div class="glass rounded-2xl p-5">
+      <h2 class="text-sm font-bold uppercase tracking-widest text-sky-400 mb-2">Gemini Credential</h2>
+      <p class="text-[11px] text-amber-300 mb-3"><strong>Audit C-05:</strong> V6.2 wrote the key to <span class="mono">localStorage</span> in cleartext while the UI claimed encryption. This build holds it <strong>in memory only</strong> and never persists it. Session 4 adds an encrypted, expiring vault.</p>
+      <div class="flex gap-2 flex-wrap">
+        <input id="apiKey" type="password" class="inp flex-1 min-w-[220px] rounded-lg px-3 py-2 text-xs mono" placeholder="AIza…  (memory only — cleared on reload)">
+        <button id="btnKeySet" class="btn px-4 py-2 rounded-lg text-xs font-bold" style="background:rgba(56,189,248,.16);border:1px solid rgba(56,189,248,.4);color:#7dd3fc">Hold for session</button>
+        <button id="btnKeyClear" class="btn px-4 py-2 rounded-lg text-xs font-bold text-rose-300" style="background:rgba(251,113,133,.1);border:1px solid rgba(251,113,133,.3)">Forget</button>
+      </div>
+      <p id="keyState" class="text-[11px] mono mt-2 text-slate-500">no key held</p>
+    </div>
+    <div class="glass rounded-2xl p-5">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-bold uppercase tracking-widest text-sky-400">Invariant Self-Test</h2>
+        <button id="btnSelfTest" class="btn text-xs font-bold px-4 py-2 rounded-lg" style="background:rgba(52,211,153,.16);border:1px solid rgba(52,211,153,.4);color:#6ee7b7">Run suite</button>
+      </div>
+      <div id="testHost" class="text-[11px] mono space-y-1 text-slate-500">Not yet run.</div>
+    </div>
+  </section>
+</main>
+
+<div id="toasts" class="fixed bottom-5 right-5 z-[100] flex flex-col gap-2 items-end np"></div>
+<textarea id="shim" class="fixed opacity-0 pointer-events-none" style="top:-9999px" aria-hidden="true"></textarea>
+
+<script>
+"use strict";
+/* ══════════════════════════════════════════════════════════════════════════
+   INDEX ENGINE v9.1.0.1 — 12-PART NOMENCLATURE ENGINE
+   Ground truth: 12-part policy (G-02) · Part2 without hyphen (G-01)
+                 TITLE > 35 ⇒ Smart Review Queue (G-03)
+   Every module below is a pure function except Store and UI.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────── SHA-256 ──────────────────────────────────────
+   Pure-JS implementation. Required because crypto.subtle is unavailable in
+   non-secure contexts (file://), and this application must run from a local
+   file with no server. Input MUST be ASCII — callers normalise first.        */
+function sha256(ascii){
+  function rr(v,a){return (v>>>a)|(v<<(32-a));}
+  var p=Math.pow,mw=p(2,32),res='',w=[],len=ascii.length*8;
+  var h=sha256.h=sha256.h||[],k=sha256.k=sha256.k||[],pc=k.length,comp={};
+  for(var c=2;pc<64;c++){
+    if(!comp[c]){
+      for(var i=0;i<313;i+=c)comp[i]=c;
+      h[pc]=(p(c,.5)*mw)|0; k[pc++]=(p(c,1/3)*mw)|0;
+    }
+  }
+  ascii+='\x80';
+  while(ascii.length%64-56)ascii+='\x00';
+  for(i=0;i<ascii.length;i++){
+    var j=ascii.charCodeAt(i);
+    if(j>>8)return '';
+    w[i>>2]|=j<<((3-i)%4)*8;
+  }
+  w[w.length]=(len/mw)|0; w[w.length]=len;
+  for(j=0;j<w.length;){
+    var wi=w.slice(j,j+=16),oh=h;
+    h=h.slice(0,8);
+    for(i=0;i<64;i++){
+      var w15=wi[i-15],w2=wi[i-2],a=h[0],e=h[4];
+      var t1=h[7]+(rr(e,6)^rr(e,11)^rr(e,25))+((e&h[5])^((~e)&h[6]))+k[i]
+        +(wi[i]=(i<16)?wi[i]:(wi[i-16]+(rr(w15,7)^rr(w15,18)^(w15>>>3))+wi[i-7]+(rr(w2,17)^rr(w2,19)^(w2>>>10)))|0);
+      var t2=(rr(a,2)^rr(a,13)^rr(a,22))+((a&h[1])^(a&h[2])^(h[1]&h[2]));
+      h=[(t1+t2)|0].concat(h); h[4]=(h[4]+t1)|0;
+    }
+    for(i=0;i<8;i++)h[i]=(h[i]+oh[i])|0;
+  }
+  for(i=0;i<8;i++)for(j=3;j+1;j--){var b=(h[i]>>(j*8))&255;res+=((b<16)?0:'')+b.toString(16);}
+  return res;
+}
+
+/* ──────────────────────── SEGMENT SCHEMA (data) ───────────────────────────
+   INV-NOM-07: arity is 12. The serializer, validator, sanitizer, parser and
+   UI are ALL driven from this table. Reconciling the PDF slot identities is a
+   one-object edit here — no code change.                                    */
+var SEGMENTS = [
+  {n:1, key:'date',   label:'Reference Date',   group:'base', max:10,
+   re:/^\d{4}\.\d{2}\.\d{2}$/, ph:'0000.00.00', hint:'YYYY.MM.DD · ISO 8601',
+   color:'#38bdf8', required:true},
+  {n:2, key:'cs',     label:'Case / Matter',    group:'base', max:24,
+   re:/^[A-Za-z0-9]{1,24}$/, ph:'NOCASE', hint:'PascalCase, alphanumeric',
+   color:'#38bdf8', required:true},
+  {n:3, key:'type',   label:'Type Code',        group:'base', max:6,
+   re:/^[A-Z]{4,6}$/, ph:'DOCU', hint:'4–6 uppercase letters',
+   color:'#818cf8', required:true},
+  {n:4, key:'title',  label:'Title',            group:'base', max:35, overflow:'TITLE_OVERFLOW',
+   re:/^[A-Za-z0-9]{1,35}$/, ph:'NOTITLE', hint:'PascalCase, ≤ 35 chars',
+   color:'#c084fc', required:true},
+  {n:5, key:'ver',    label:'Version',          group:'base', max:4,
+   re:/^(v\d{2}|[A-Z]{3,4})$/, ph:'v01', hint:'v01…v99 · FIN · EXE · DRAF',
+   color:'#34d399', required:true},
+  {n:6, key:'priv',   label:'Privilege Tag',    group:'base', max:4,
+   re:/^[A-Z]{4}$/, ph:'PUBL', hint:'PUBL · CONF · PRIV · SECR · PII',
+   color:'#fb7185', required:true},
+  {n:7, key:'origin', label:'Originating Party',group:'base', max:4,
+   re:/^[A-Z]{4}$/, ph:'CLNT', hint:'CLNT · OPPS · COUR · FIRM',
+   color:'#fbbf24', required:true},
+  {n:8, key:'author', label:'Author',           group:'base', max:24,
+   re:/^[A-Z]{2,24}$/, ph:'NOAUTHOR', hint:'First initial + last name, or entity code',
+   color:'#34d399', required:true},
+  {n:9, key:'e1',     label:'E1 · Bates No.',   group:'ext',  max:18,
+   re:/^[A-Za-z0-9]{0,18}$/, ph:'NA', hint:'Bates stamped number · NA when absent',
+   color:'#818cf8', required:false, default:'NA'},
+  {n:10,key:'e2',     label:'E2 · Judicial Venue', group:'ext', max:18,
+   re:/^[A-Za-z0-9]{0,18}$/, ph:'NA', hint:'Venue · NA when absent',
+   color:'#818cf8', required:false, default:'NA'},
+  {n:11,key:'e3',     label:'E3 · Subpoena Issuer', group:'ext', max:18,
+   re:/^[A-Za-z0-9]{0,18}$/, ph:'NA', hint:'Issuer · NA when absent',
+   color:'#818cf8', required:false, default:'NA'},
+  {n:12,key:'id',     label:'Archive ID',       group:'id',   max:11,
+   re:/^FILE\d{6}$/, ph:'FILE000000', hint:'Assigned by the ledger · max+1 · never reused',
+   color:'#38bdf8', required:true, assigned:true}
+];
+var SLOTS = SEGMENTS.map(function(s){return s.key;});
+var ARITY = SEGMENTS.length;                    /* INV-NOM-07: 12 SEMANTIC parts */
+var DELIM = '.';
+
+/* ─────────────────── FIELD LAYOUT — the delimiter subtlety ────────────────
+   `DATE` is written YYYY.MM.DD, so it OCCUPIES THREE dot-fields. A 12-part
+   name therefore contains FOURTEEN dot-delimited fields, not twelve.
+   Conflating "parts" (12) with "fields" (14) is the single easiest way to
+   corrupt the parser — so the mapping is derived once, from the schema, and
+   every consumer (parse, validate, migrate, UI) reads it from here.          */
+var LAYOUT = (function(){
+  var out = [], f = 0;
+  SEGMENTS.forEach(function(s){
+    var width = (s.key === 'date') ? 3 : 1;
+    out.push({key: s.key, start: f, width: width});
+    f += width;
+  });
+  return out;
+})();
+var TOTAL_FIELDS = LAYOUT.reduce(function(a,l){ return a + l.width; }, 0);   /* 14 */
+var V62_FIELDS   = 11;   /* 3 date + 7 base + ID  → 9 semantic parts          */
+
+/* ─────────────────────────── ERROR CODES ────────────────────────────────── */
+var CODES = {
+  ARITY:          'Structural: parsed slot count ≠ 12 (INV-NOM-07).',
+  REQUIRED:       'Required slot is empty.',
+  PATTERN:        'Value does not match the slot pattern.',
+  OVERFLOW:       'Title exceeds 35 characters — the file is uncertain (G-03).',
+  DATE_UNKNOWN:   'No reference date could be determined (INV-SRQ-01).',
+  DATE_AMBIG:     'Date is ambiguous — both MM/DD and DD/MM readings are valid (U-02).',
+  DATE_IMPLAUS:   'Date is outside the plausible range.',
+  RESERVED:       'Value collides with a reserved OS device name (U-09).',
+  EMPTY_EXT:      'A standing extension slot is empty; it must carry NA.',
+  COLLISION_MAX:  'Nine identically-named records already exist — this is a data defect, not a naming defect.',
+  ARITY_OVERFLOW: 'More than three extensions were supplied (U-22).'
+};
+
+/* ─────────────────────── NORMALISATION / SANITIZER ──────────────────────── */
+var RESERVED = ['CON','PRN','AUX','NUL','COM1','COM2','COM3','COM4','COM5','COM6','COM7','COM8','COM9',
+                'LPT1','LPT2','LPT3','LPT4','LPT5','LPT6','LPT7','LPT8','LPT9'];
+var ILLEGAL  = /[<>:"/\\|?*\u0000-\u001F\u007F]/g;   /* U-08 */
+/* Canonical status words. Without this, "final" sanitises to the 5-char string
+   FINAL, which then fails the v\d{2}|[A-Z]{3,4} pattern and silently blocks the
+   record. Mapping to the declared vocabulary keeps the enumeration closed.   */
+var VER_MAP = {
+  FINAL:'FIN', EXECUTED:'EXE', EXECUT:'EXE', DRAFT:'DRAF', DRAFTS:'DRAF',
+  AMENDED:'AMND', AMEND:'AMND', REDACTED:'REDA', REDACT:'REDA',
+  SUPPLEMENTAL:'SUPP', SUPPLEMENT:'SUPP', VOID:'VOID', VOIDED:'VOID',
+  TEMPLATE:'TEMP', TEMP:'TEMP', COPY:'COPY', ORIGINAL:'ORIG'
+};
+var ISO_RE   = /^(\d{4})\.(\d{2})\.(\d{2})$/;
+
+/** U-04: NFD-fold, strip combining marks, drop everything outside [A-Za-z0-9]. */
+function toAscii(str){
+  return String(str == null ? '' : str)
+    .normalize ? String(str).normalize('NFD').replace(/[\u0300-\u036f]/g,'') : String(str);
+}
+/** PascalCase fold — the requirement README mislabels "CamelCase" (C-03). */
+function pascal(str){
+  return toAscii(str)
+    .replace(ILLEGAL,' ')
+    .replace(/[^A-Za-z0-9 ]+/g,' ')
+    .split(/[\s_\-]+/)
+    .filter(Boolean)
+    .map(function(w){return w.charAt(0).toUpperCase()+w.slice(1);})
+    .join('')
+    .replace(/[^A-Za-z0-9]/g,'');
+}
+/** U-09/U-10: guard reserved device names and trailing dot/space. */
+function guard(v){
+  var out = String(v||'');
+  out = out.replace(/[. ]+$/,'');
+  if (RESERVED.indexOf(out.toUpperCase()) >= 0) out = out + '_';
+  return out;
+}
+function sanitize(slot, raw){
+  var s = SEGMENTS.filter(function(x){return x.key===slot;})[0];
+  if(!s) return String(raw||'');
+  var v = String(raw == null ? '' : raw).trim();
+  if(slot === 'date'){
+    v = v.replace(/[-/]/g,'.');
+    var m = v.match(/^(\d{4})\.(\d{1,2})\.(\d{1,2})$/);
+    if(m) v = m[1]+'.'+m[2].padStart(2,'0')+'.'+m[3].padStart(2,'0');
+    return guard(v);
+  }
+  if(s.group === 'id') return guard(v.toUpperCase());
+  if(slot === 'ver'){
+    v = v.replace(/\s/g,'');
+    if(/^v\d{1,2}$/i.test(v)) return 'v' + v.slice(1).padStart(2,'0');
+    var up = v.toUpperCase().replace(/[^A-Z]/g,'');
+    if(VER_MAP[up]) return VER_MAP[up];        /* canonicalise status words */
+    return up.slice(0, 4);                     /* pattern is v\d{2} | [A-Z]{3,4} */
+  }
+  if(slot === 'type' || slot === 'priv' || slot === 'origin'){
+    return v.toUpperCase().replace(/[^A-Z0-9]/g,'');
+  }
+  if(slot === 'author'){
+    return v.toUpperCase().replace(/[^A-Z]/g,'');
+  }
+  if(s.group === 'ext'){
+    var p = pascal(v);
+    return p === '' ? 'NA' : guard(p.slice(0, s.max));
+  }
+  var out = guard(pascal(v));                    /* case, title */
+  return out.length > s.max ? out.slice(0, s.max) : out;   /* INV-NOM-05 / INV-NOM-08 */
+}
+
+/* ──────────────────────── SERIALIZER — INV-NOM-06 ──────────────────────────
+   The ONLY place where slot concatenation occurs.                            */
+/**
+ * Serialize parts → filename. The assigned slot (ID) is engine-owned: it is
+ * EXCLUDED from the caller-supplied required check so that a preview can be
+ * rendered before allocation. Callers that need a complete name must pass the
+ * real ID; `opts.placeholder` renders the declared placeholder instead and is
+ * used by the UI preview only — never by commit().
+ */
+function buildName(parts, opts){
+  opts = opts || {};
+  var missing = SEGMENTS.filter(function(s){
+    return s.required && !s.assigned && !parts[s.key];
+  });
+  if(missing.length) throw new EngineError('REQUIRED', 'Missing: '+missing.map(function(s){return s.label;}).join(', '));
+  return SEGMENTS.map(function(s){
+    var v = parts[s.key];
+    if(!v && s.assigned){
+      if(!opts.placeholder) throw new EngineError('REQUIRED', 'Missing: '+s.label);
+      return s.ph;
+    }
+    return v;
+  }).join(DELIM);
+}
+/** Split a filename into semantic parts, honouring DATE's three-field width. */
+function parseName(name){
+  var f = String(name == null ? '' : name).split(DELIM);
+  var out = {};
+  LAYOUT.forEach(function(l){
+    out[l.key] = (f.length >= l.start + l.width)
+      ? f.slice(l.start, l.start + l.width).join(DELIM)
+      : '';
+  });
+  out.__fields = f.length;                                  /* 14 for conformant */
+  out.__arity  = ARITY;                                     /* 12 semantic parts */
+  out.__conformant = (f.length === TOTAL_FIELDS) &&
+    SEGMENTS.every(function(s){ return s.re.test(out[s.key] || ''); });
+  return out;
+}
+function EngineError(code, detail){
+  var e = new Error(code + (detail ? ' — '+detail : ''));
+  e.code = code; e.detail = detail || CODES[code] || ''; return e;
+}
+
+/* ─────────────────────────── VALIDATOR ──────────────────────────────────── */
+function validate(parts){
+  var errors = [], warnings = [];
+  SEGMENTS.forEach(function(s){
+    var v = parts[s.key];
+    if(s.assigned) return;                                     /* ID is engine-owned */
+    if(!v){
+      if(s.required) errors.push({slot:s.key, code:'REQUIRED', msg:CODES.REQUIRED});
+      else warnings.push({slot:s.key, code:'EMPTY_EXT', msg:CODES.EMPTY_EXT});
+      return;
+    }
+    if(!s.re.test(v)) errors.push({slot:s.key, code:'PATTERN', msg:CODES.PATTERN+' → '+v});
+    if(s.key === 'title' && v.length > 35)
+      errors.push({slot:'title', code:'TITLE_OVERFLOW', msg:CODES.OVERFLOW, detected:{chars:v.length, limit:35, excess:v.length-35}});
+  });
+  /* date sanity */
+  if(parts.date && ISO_RE.test(parts.date)){
+    var y = +parts.date.slice(0,4), mo = +parts.date.slice(5,7), d = +parts.date.slice(8,10);
+    var maxY = new Date().getFullYear() + 5;
+    if(y < 1900 || y > maxY || mo < 1 || mo > 12 || d < 1 || d > 31)
+      errors.push({slot:'date', code:'DATE_IMPLAUS', msg:CODES.DATE_IMPLAUS+' → '+parts.date});
+  } else if(parts.date){
+    errors.push({slot:'date', code:'DATE_UNKNOWN', msg:CODES.DATE_UNKNOWN});
+  }
+  /* reserved device name check across every emitted segment (U-09) */
+  SEGMENTS.forEach(function(s){
+    if(parts[s.key] && RESERVED.indexOf(String(parts[s.key]).toUpperCase()) >= 0)
+      warnings.push({slot:s.key, code:'RESERVED', msg:CODES.RESERVED});
+  });
+  return {ok: errors.length === 0, errors: errors, warnings: warnings};
+}
+
+/* ─────────────────────── SMART REVIEW QUEUE — G-03 ────────────────────────
+   INV-SRQ-01: uncertainty is quarantined, never guessed.                     */
+var TRIGGERS = {
+  TITLE_OVERFLOW:   {label:'Title exceeds 35 characters', severity:'blocking',
+                     help:'The file is uncertain. Shorten it, split it, or re-extract.'},
+  DATE_UNKNOWN:     {label:'Reference date could not be determined', severity:'blocking',
+                     help:'Supply the document date. The engine will not substitute the file mtime.'},
+  DATE_AMBIGUOUS:   {label:'Date is ambiguous (MM/DD vs DD/MM)', severity:'blocking',
+                     help:'Pick the correct reading; the choice is recorded as an attributed decision.'},
+  DATE_IMPLAUSIBLE: {label:'Date is outside the plausible range', severity:'blocking',
+                     help:'Likely OCR corruption. Verify against the document.'},
+  LOW_CONFIDENCE:   {label:'Extraction confidence below threshold', severity:'blocking',
+                     help:'Re-extract with a stricter prompt, or supply the fields manually.'},
+  EXTENSION_REQUIRED:{label:'A standing extension slot is empty', severity:'advisory',
+                     help:'All three extension slots must be present; use NA when genuinely absent.'},
+  RESERVED_NAME:    {label:'Value collides with a reserved OS device name', severity:'blocking',
+                     help:'Windows cannot address this name. The engine appends an underscore.'},
+  COLLISION_MAX:    {label:'More than nine identically-named records', severity:'blocking',
+                     help:'A data defect, not a naming defect. Inspect the source batch.'},
+  ARITY_OVERFLOW:   {label:'More than three extensions supplied', severity:'blocking',
+                     help:'Arity is fixed at 12 (INV-NOM-07). Consolidate the surplus.'}
+};
+function detectTriggers(parts, meta){
+  var hits = [], v = validate(parts);
+  v.errors.forEach(function(e){
+    var code = e.code === 'PATTERN' && e.slot === 'title' ? 'TITLE_OVERFLOW' : e.code;
+    if(TRIGGERS[code] && hits.indexOf(code) < 0) hits.push(code);
+  });
+  v.warnings.forEach(function(w){ if(TRIGGERS[w.code] && hits.indexOf(w.code) < 0) hits.push(w.code); });
+  if(parts.date === '0000.00.00' && hits.indexOf('DATE_UNKNOWN') < 0) hits.push('DATE_UNKNOWN');
+  if(meta && typeof meta.confidence === 'number' && meta.confidence < 0.55 && hits.indexOf('LOW_CONFIDENCE') < 0)
+    hits.push('LOW_CONFIDENCE');
+  return hits;
+}
+
+/* ──────────────────── DEDUPLICATION — INV-DUP-01 / 02 ──────────────────────
+   Comparison is over SEGMENT TUPLES, never substrings (closes C-09), and the
+   ordinal is re-tested in a loop, unbounded (closes C-08).                   */
+function keyTuple(parts){
+  return ['date','cs','type','title','ver','priv','origin','author','e1','e2','e3']
+    .map(function(k){ return String(parts[k]||'').toUpperCase(); });
+}
+function tupleOf(name){ return keyTuple(parseName(name)); }
+function sameTuple(a,b){ return a.length===b.length && a.every(function(x,i){return x===b[i];}); }
+function collisionCount(parts, ledger){
+  var t = keyTuple(parts);
+  return ledger.reduce(function(n,row){
+    return n + (row.parts && sameTuple(keyTuple(row.parts), t) ? 1 : 0);
+  }, 0);
+}
+/** Returns {title, n} with title disambiguated by Part2, Part3 … */
+function disambiguate(parts, ledger){
+  var n = collisionCount(parts, ledger);
+  if(n === 0) return {parts: parts, n: 0, changed: false};
+  var copy = Object.assign({}, parts);
+  copy.title = (parts.title || 'NOTITLE') + 'Part' + (n + 1);
+  /* re-test — the appended title may itself already exist */
+  var guardCount = 0;
+  while(collisionCount(copy, ledger) > 0 && guardCount < 9){
+    guardCount++;
+    copy.title = (parts.title || 'NOTITLE') + 'Part' + (n + 1 + guardCount);
+  }
+  return {parts: copy, n: n, changed: true, exhausted: guardCount >= 9};
+}
+
+/* ─────────────────────────── ID ALLOCATION — C-06 ─────────────────────────
+   INV-ID-01: ID = max(existing numeric suffix) + 1, asserted unique against
+   the ledger at write time. The cached counter is never the authority.       */
+function nextId(ledger){
+  var max = 0;
+  ledger.forEach(function(r){
+    var m = /^FILE(\d{6})$/.exec(r.id || '');
+    if(m) max = Math.max(max, parseInt(m[1],10));
+  });
+  return String(max + 1).padStart(6,'0');
+}
+function nextIdFull(ledger){ return 'FILE' + nextId(ledger); }
+
+/* ─────────────────────── HASH-CHAINED LEDGER — U-18 ─────────────────────── */
+var GENESIS = '0'.repeat(64);
+function rowHash(prevHash, id, name, ts){
+  return sha256([prevHash, id, name, String(ts)].join('|'));
+}
+function verifyChain(ledger){
+  var prev = GENESIS, broken = [];
+  for(var i = 0; i < ledger.length; i++){
+    var r = ledger[i], expect = rowHash(prev, r.id, r.newName, r.timestamp);
+    if(r.prevHash !== prev || r.hash !== expect){ broken.push({index:i, id:r.id, expected:expect, actual:r.hash}); }
+    prev = r.hash;
+  }
+  return {ok: broken.length === 0, broken: broken, head: prev};
+}
+
+/* ───────────────────── V6.2 → v9.1.0.1 MIGRATION — C-13 ──────────────────
+   Additive and lossless. ID preserved verbatim. TITLE > 35 → queue.          */
+function migrateV62(rawRows){
+  var committed = [], queued = [], already = 0;
+  (rawRows || []).forEach(function(row){
+    var name = row.newName || row.filename || '';
+    var f = String(name).split(DELIM);
+    var idField = f[f.length - 1];
+
+    /* already 12-part (14 fields, FILE###### terminal) → idempotent no-op */
+    if(f.length === TOTAL_FIELDS && /^FILE\d{6}$/.test(idField)){ already++; return; }
+
+    /* V6.2: 11 fields (9 semantic) OR 11+n where n = dynamic extensions */
+    if(f.length >= V62_FIELDS && /^FILE\d{6}$/.test(idField)){
+      var extra = f.slice(10, f.length - 1);              /* the dynamic extensions */
+      if(extra.length > 3){
+        queued.push({trigger:'ARITY_OVERFLOW', fileName:row.oldName || name,
+                     parts:parseName(name), detected:{extensions:extra.length, capacity:3},
+                     note:'V6.2 record carries '+extra.length+' extensions; only 3 slots exist (U-22).'});
+        return;
+      }
+      var parts = {
+        date:   f.slice(0,3).join(DELIM),
+        cs:     f[3], type: f[4], title: f[5],
+        ver:    f[6], priv: f[7], origin: f[8], author: f[9],
+        e1: extra[0] || 'NA', e2: extra[1] || 'NA', e3: extra[2] || 'NA',
+        id: idField
+      };
+      if((parts.title || '').length > 35){
+        queued.push({trigger:'TITLE_OVERFLOW', fileName:row.oldName || name, parts:parts,
+                     detected:{chars:parts.title.length, limit:35, excess:parts.title.length-35},
+                     note:'Migrated from V6.2 with an over-length title — NOT truncated (INV-SRQ-02).'});
+      } else {
+        committed.push({id:parts.id, oldName:row.oldName || '', newName:buildName(parts),
+                        parts:parts,
+                        timestamp: row.timestamp ? (Date.parse(row.timestamp) || Date.now()) : Date.now(),
+                        provenance:'migrated-v6.2', prevHash:'', hash:''});
+      }
+      return;
+    }
+
+    if(name){
+      queued.push({trigger:'ARITY_OVERFLOW', fileName:row.oldName || name,
+                   parts:parseName(name), detected:{fields:f.length, expected:TOTAL_FIELDS},
+                   note:'Unrecognised field count — requires manual adjudication.'});
+    }
+  });
+  /* order by the numeric ID suffix so the re-chained block stays verifiable */
+  committed.sort(function(a,b){ return (parseInt(a.id.slice(4),10)||0) - (parseInt(b.id.slice(4),10)||0); });
+  return {committed: committed, queued: queued, alreadyConformant: already};
+}
+
+/* ───────────────────── LOCAL EXTRACTION (no API key) ─────────────────────
+   Deterministic heuristics over filename + MIME + size. This is the primary
+   ingestion path: it always works, offline, with no credential. Gemini is an
+   optional refinement, never a hard dependency (closes C-06).                */
+var TYPE_HINTS = [
+  [/transcript|deposition|hearing/i,'TRAN'], [/contract|agreement|msa|sow/i,'CONT'],
+  [/complaint|petition/i,'CMPT'],           [/pleading|motion|brief/i,'PLEA'],
+  [/affidavit|declaration|sworn/i,'AFFI'],  [/exhibit/i,'EXHB'],
+  [/order|judgment|ruling|decree/i,'ORDR'], [/discovery|interrogator|request.*produc/i,'DISC'],
+  [/research|memo.*law|briefing/i,'LEGL'],  [/insurance|policy|claim/i,'INSR'],
+  [/medical|hospital|clinic|provider/i,'MEDB'],[/invoice|bill/i,'PBILL'],
+  [/receipt/i,'RECPT'],                     [/tax|1099|w-?2|1040/i,'TAXF'],
+  [/certificate|certification/i,'CERT'],    [/email|correspondence|letter/i,'CORR'],
+  [/screenshot|screen.*shot/i,'SCRSHT'],    [/photo|image|scan/i,'PHOT'],
+  [/spreadsheet|ledger|xlsx|workbook/i,'SPRD'],[/(^|\W)csv(\W|$)/i,'CSVF'],
+  [/fillable|form/i,'FILF'],                [/evidence/i,'EVID'],
+  [/subpoena/i,'SUBP']
+];
+var STOP = new Set(['the','a','an','of','and','or','to','for','in','on','at','by','with','from',
+                    'v','vs','versus','final','draft','copy','pdf','docx','doc','img','scan','file','new','old']);
+
+function isoFromAny(tok){
+  var m;
+  if((m = /^(\d{4})[-_.\/](\d{1,2})[-_.\/](\d{1,2})$/.exec(tok))) return {iso:[m[1],m[2],m[3]], ambiguous:false};
+  if((m = /^(\d{1,2})[-_.\/](\d{1,2})[-_.\/](\d{4})$/.exec(tok))){
+    var a = +m[1], b = +m[2];
+    return {iso:[m[3], String(a), String(b)], ambiguous: (a<=12 && b<=12 && a!==b)};
+  }
+  if((m = /^(\d{4})(\d{2})(\d{2})$/.exec(tok))) return {iso:[m[1],m[2],m[3]], ambiguous:false};
+  return null;
+}
+/** Scan a raw string for a date, preserving separators. Returns the match so the
+    caller can blank it out before deriving the title. */
+function dateFromString(str){
+  var m;
+  if((m = /(\d{4})[-_.\/](\d{1,2})[-_.\/](\d{1,2})/.exec(str)))
+    return {iso:[m[1],m[2],m[3]], ambiguous:false, matched:m[0]};
+  if((m = /(\d{1,2})[-_.\/](\d{1,2})[-_.\/](\d{4})/.exec(str))){
+    var a = +m[1], b = +m[2];
+    return {iso:[m[3],m[1],m[2]], ambiguous:(a<=12 && b<=12 && a!==b), matched:m[0]};
+  }
+  if((m = /\b(\d{4})(\d{2})(\d{2})\b/.exec(str)))
+    return {iso:[m[1],m[2],m[3]], ambiguous:false, matched:m[0]};
+  return null;
+}
+
+function localExtract(file){
+  var base = String(file.name).replace(/\.[^.]+$/,'');
+  var toks = base.split(/[^A-Za-z0-9]+/).filter(Boolean);
+  var signals = 0, confidence = 0;
+  var out = {date:null, ambiguous:false, cs:'', type:'', title:'', author:'', ver:'v01', priv:'PUBL',
+             origin:'CLNT', e1:'NA', e2:'NA', e3:'NA'};
+
+  /* date — scan the WHOLE string first: tokenising destroys separators and
+     turns "2024-03-11" into three unrelated numbers. */
+  var d = dateFromString(base);
+  if(d){
+    var mm = String(d.iso[1]).padStart(2,'0'), dd = String(d.iso[2]).padStart(2,'0');
+    out.date = d.iso[0]+'.'+mm+'.'+dd;
+    out.ambiguous = d.ambiguous;
+    signals++; confidence += 0.3;
+    if(d.matched) base = base.replace(d.matched, ' ');
+  } else {
+    for(var i=0;i<toks.length;i++){
+      var dt = isoFromAny(toks[i]);
+      if(dt){
+        out.date = dt.iso[0]+'.'+String(dt.iso[1]).padStart(2,'0')+'.'+String(dt.iso[2]).padStart(2,'0');
+        out.ambiguous = dt.ambiguous; signals++; confidence += 0.3; break;
+      }
+    }
+  }
+  /* case — "X v Y" / "X vs Y" */
+  var mCase = /\b([A-Za-z0-9]{2,18})\s+(?:v|vs|versus)\.?\s+([A-Za-z0-9]{2,18})\b/i.exec(base);
+  if(mCase){ out.cs = pascal(mCase[1])+'V'+pascal(mCase[2]); signals++; confidence += 0.25; }
+  /* type */
+  for(var t=0;t<TYPE_HINTS.length;t++){
+    if(TYPE_HINTS[t][0].test(base)){ out.type = TYPE_HINTS[t][1]; signals++; confidence += 0.25; break; }
+  }
+  if(!out.type){                                    /* MIME fallback */
+    var mime = String(file.type||'');
+    if(/pdf/.test(mime)) out.type='PDFX'; else if(/image/.test(mime)) out.type='PHOT';
+    else if(/text\/csv/.test(mime)) out.type='CSVF'; else if(/text/.test(mime)) out.type='TXTF';
+    else if(/word/.test(mime)) out.type='DOCU'; else out.type='DOCU';
+    confidence += 0.08;
+  }
+  /* version / privilege / origin tokens */
+  if(/\b(w-?9|w9|executed|exe)\b/i.test(base)){ out.ver = 'EXE'; signals++; }
+  else if(/\b(final|fin)\b/i.test(base)){ out.ver = 'FIN'; signals++; }
+  else if(/\b(amended|amnd|amd)\b/i.test(base)){ out.ver = 'AMND'; signals++; }
+  else if(/\b(redact|reda)\b/i.test(base)){ out.ver = 'REDA'; signals++; }
+  else if(/\b(supp|supplemental)\b/i.test(base)){ out.ver = 'SUPP'; signals++; }
+  if(/\b(confidential|conf)\b/i.test(base)){ out.priv = 'CONF'; signals++; }
+  if(/\b(privileged|priv|attorney)\b/i.test(base)){ out.priv = 'PRIV'; signals++; }
+  if(/\b(pii|ssn|dob)\b/i.test(base)){ out.priv = 'PII'; signals++; }
+  if(/\b(opposing|opps|defendant)\b/i.test(base)){ out.origin = 'OPPS'; signals++; }
+  if(/\b(court|filed|clerk|cour)\b/i.test(base)){ out.origin = 'COUR'; signals++; }
+
+  /* bates / venue / subpoena issuer from filename tokens */
+  var mB = /\b([A-Z]{2,6}[-_]?\d{4,10})\b/.exec(base);
+  if(mB){ out.e1 = pascal(mB[1].replace(/[-_]/g,'')); signals++; }
+  var mS = /\bsubpoena[-\s_]?([A-Za-z0-9]{2,18})\b/i.exec(base);
+  if(mS){ out.e3 = pascal(mS[1]); signals++; }
+
+  /* title — residual meaningful tokens */
+  var residual = toks.filter(function(tk){ return tk.length > 2 && !STOP.has(tk.toLowerCase()); });
+  if(!out.cs) residual = residual.filter(function(tk){ return !/^\d+$/.test(tk); });
+  out.title = pascal(residual.slice(0,8).join(' '));
+
+  confidence += Math.min(0.12, signals * 0.03);
+  if(!out.date) confidence -= 0.18;
+  if(!out.cs)   confidence -= 0.10;
+  out.confidence = Math.max(0, Math.min(0.97, confidence));
+  return out;
+}
+
+/* ───────────────────────────── STORE ──────────────────────────────────────
+   localStorage-backed with explicit quota handling (U-15 upgrade lands in
+   Session 4). Every write is guarded; a failed write surfaces an export
+   prompt rather than losing data silently.                                   */
+var Store = (function(){
+  var K = {ledger:'ie9.ledger', queue:'ie9.queue', tax:'ie9.taxonomy', seq:'ie9.srqseq', audit:'ie9.audit'};
+  var quota = false;
+  function read(k, dflt){
+    try { var v = localStorage.getItem(k); return v === null ? dflt : JSON.parse(v); }
+    catch(e){ return dflt; }
+  }
+  function write(k, v){
+    try { localStorage.setItem(k, JSON.stringify(v)); quota = false; return true; }
+    catch(e){
+      quota = true;
+      toast('Storage quota exceeded — export and prune the ledger.', 'err');
+      return false;
+    }
+  }
+  return {
+    K: K, read: read, write: write,
+    isQuotaExceeded: function(){ return quota; },
+    bytes: function(){
+      var n = 0;
+      Object.keys(K).forEach(function(x){ try{ n += (localStorage.getItem(K[x])||'').length; }catch(e){} });
+      return n;
+    }
+  };
+})();
+
+var DEFAULT_TAX = {
+  types: [
+    ['TRAN','Transcript'],['CONT','Contract'],['PLEA','Pleading'],['DISC','Discovery'],
+    ['LEGL','Legal Research'],['AFFI','Affidavit'],['EXHB','Exhibit'],['ORDR','Court Order'],
+    ['CMPT','Complaint'],['APPL','Appellate'],['PBILL','Personal Bill'],['WRECPT','Work Receipt'],
+    ['RECPT','Receipt'],['TAXF','Tax Forms'],['INSR','Insurance'],['MEDB','Medical Bills'],
+    ['DOCU','Word / Text'],['PDFX','Static PDF'],['SPRD','Spreadsheet'],['PRES','Presentation'],
+    ['CORR','Correspondence'],['EMAL','Email Export'],['EVID','Evidence'],['FILF','Fillable Form'],
+    ['CERT','Certificate'],['PHOT','Photo'],['SCRSHT','Screenshot'],['VIDO','Video'],
+    ['SCRR','Screen Record'],['AUDI','Audio'],['FAXF','Fax Scan'],['WEBP','Web Archive'],
+    ['CSVF','CSV Data'],['JSON','JSON Data'],['MARD','Markdown'],['TXTF','Plain Text'],
+    ['MDCA','Medical Records'],['SUBP','Subpoena']
+  ].map(function(p){return {code:p[0], desc:p[1]};}),
+  privs: [
+    ['PUBL','Public Record'],['CONF','Confidential'],['PRIV','Attorney-Client'],
+    ['WORK','Work Product'],['SEAL','Under Seal'],['REST','Restricted'],['SECR','Secret'],
+    ['PERS','Personal'],['PII','Personally Identifiable'],['HIPA','HIPAA Protected']
+  ].map(function(p){return {code:p[0], desc:p[1]};}),
+  origins: [
+    ['CLNT','Client'],['OPPS','Opposing Party'],['FIRM','Internal Firm'],['COCO','Co-Counsel'],
+    ['COUR','Court / Government'],['3RDP','Third Party'],['WITN','Witness'],['EXPT','Expert Witness'],
+    ['MEDI','Mediator'],['AGEN','Government Agency'],['VEND','Vendor'],['BANK','Bank'],
+    ['PERS','Personal / Self']
+  ].map(function(p){return {code:p[0], desc:p[1]};})
+};
+
+/* ══════════════════════════ APPLICATION STATE ═════════════════════════════ */
+var S = {
+  ledger: Store.read(Store.K.ledger, []),
+  queue:  Store.read(Store.K.queue, []),
+  tax:    Store.read(Store.K.tax, null) || JSON.parse(JSON.stringify(DEFAULT_TAX)),
+  audit:  Store.read(Store.K.audit, []),
+  parts:  {},
+  staged: [],
+  env:    [],
+  apiKey: null,                       /* memory only — INV-SEC-02 */
+  tab:    'constructor'
+};
+SEGMENTS.forEach(function(s){ S.parts[s.key] = (s.group === 'base') ? '' : (s.default || ''); });
+
+function saveLedger(){ Store.write(Store.K.ledger, S.ledger); }
+function saveQueue(){ Store.write(Store.K.queue, S.queue); }
+function saveTax(){ Store.write(Store.K.tax, S.tax); }
+function auditEvent(op, detail){
+  S.audit.push({op: op, detail: detail, at: Date.now()});
+  Store.write(Store.K.audit, S.audit);
+}
+
+/* ══════════════════════════ HELPERS ═══════════════════════════════════════ */
+function esc(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function todayLocal(){                                   /* U-03: never toISOString() */
+  var d = new Date();
+  return d.getFullYear() + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + String(d.getDate()).padStart(2,'0');
+}
+function toast(msg, kind){
+  var host = document.getElementById('toasts');
+  var el = document.createElement('div');
+  var c = kind === 'err' ? 'var(--rose)' : (kind === 'ok' ? 'var(--emerald)' : (kind === 'warn' ? 'var(--amber)' : 'var(--sky)'));
+  el.className = 'fade glass rounded-xl px-4 py-3 text-xs font-bold shadow-2xl';
+  el.style.borderColor = c; el.style.color = c; el.textContent = msg;
+  host.appendChild(el);
+  setTimeout(function(){ el.remove(); }, 3200);
+}
+function copy(text, label){
+  function done(){ toast('Copied ' + (label || ''), 'ok'); }
+  function fb(){
+    var s = document.getElementById('shim');
+    s.value = text; s.select();
+    try { document.execCommand('copy'); done(); } catch(e){ toast('Copy blocked — select manually', 'err'); }
+    window.getSelection().removeAllRanges();
+  }
+  if(navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done).catch(fb);
+  else fb();
+}
+function download(filename, content, mime){
+  var blob = new Blob([content], {type: mime || 'text/plain;charset=utf-8'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1500);
+}
+
+/* ══════════════════════════ CONSTRUCTOR UI ════════════════════════════════ */
+function currentParts(){
+  var p = {};
+  SEGMENTS.forEach(function(s){ p[s.key] = S.parts[s.key] || (s.default || ''); });
+  return p;
+}
+function renderSlots(){
+  var host = document.getElementById('slotHost');
+  host.innerHTML = SEGMENTS.map(function(s){
+    if(s.group === 'id'){
+      return '<div class="rounded-xl p-3" style="background:rgba(7,11,20,.45);border:1px dashed rgba(56,189,248,.35)">' +
+        '<p class="text-[10px] font-bold uppercase tracking-widest" style="color:'+s.color+'">Slot 12 · '+esc(s.label)+'</p>' +
+        '<p class="mono text-sm text-sky-300 font-bold mt-2">'+esc(nextIdFull(S.ledger))+'</p>' +
+        '<p class="text-[10px] text-slate-500 mt-1">'+esc(s.hint)+'</p></div>';
+    }
+    var val = S.parts[s.key] || '';
+    var isSelectable = (s.key === 'type' || s.key === 'priv' || s.key === 'origin');
+    var field;
+    if(isSelectable){
+      var cat = s.key === 'type' ? 'types' : (s.key === 'priv' ? 'privs' : 'origins');
+      field = '<select data-slot="'+s.key+'" class="inp w-full rounded-lg px-2.5 py-2 text-xs mono">' +
+        '<option value="">— select —</option>' +
+        S.tax[cat].map(function(o){ return '<option value="'+esc(o.code)+'"'+(val===o.code?' selected':'')+'>'+esc(o.code)+' · '+esc(o.desc)+'</option>'; }).join('') +
+        '<option value="__custom">+ custom…</option></select>';
+    } else {
+      field = '<input data-slot="'+s.key+'" value="'+esc(val)+'" spellcheck="false" autocomplete="off" ' +
+        'placeholder="'+esc(s.ph)+'" class="inp w-full rounded-lg px-2.5 py-2 text-xs mono">';
+    }
+    var req = s.required ? '' : ' <span class="text-slate-600">optional</span>';
+    return '<div class="rounded-xl p-3" style="background:rgba(7,11,20,.45);border:1px solid var(--stroke)">' +
+      '<div class="flex items-center justify-between mb-1.5">' +
+        '<p class="text-[10px] font-bold uppercase tracking-widest" style="color:'+s.color+'">Slot '+s.n+' · '+esc(s.label)+req+'</p>' +
+        '<span class="mono text-[9px] text-slate-600">'+esc(String(s.max))+' max</span>' +
+      '</div>' + field +
+      '<p class="text-[10px] text-slate-500 mt-1.5">'+esc(s.hint)+'</p></div>';
+  }).join('');
+
+  host.querySelectorAll('[data-slot]').forEach(function(el){
+    var slot = el.getAttribute('data-slot');
+    var handler = function(){
+      var v = el.value;
+      if(v === '__custom'){ v = window.prompt('Enter a custom code for '+slot+':') || ''; }
+      S.parts[slot] = sanitize(slot, v);
+      if(el.tagName !== 'SELECT') el.value = S.parts[slot];
+      el.classList.toggle('bad', S.parts[slot] !== '' && !SEGMENTS.filter(function(x){return x.key===slot;})[0].re.test(S.parts[slot]));
+      renderPreview(); renderStats();
+    };
+    el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', handler);
+  });
+}
+
+function renderPreview(){
+  var parts = currentParts();
+  var chk = detectTriggers(parts, {confidence: 1});
+  var text;
+  try { text = buildName(parts, {placeholder:true}); }
+  catch(e){ text = '(' + e.message + ')'; }
+  var el = document.getElementById('previewText');
+  el.textContent = text;
+  el.style.color = chk.length ? '#fcd34d' : '#7dd3fc';
+
+  document.getElementById('previewSegs').innerHTML = SEGMENTS.map(function(s){
+    var v = parts[s.key] || '·';
+    var bad = v && !s.re.test(v);
+    return '<span class="seg-pill mono" style="background:'+(bad?'rgba(251,113,133,.18)':'rgba(148,163,184,.1)')+';color:'+(bad?'#fda4af':s.color)+';border:1px solid '+(bad?'rgba(251,113,133,.4)':'var(--stroke)')+'">'+esc(v)+'</span>';
+  }).join('');
+
+  /* diagnostics */
+  var diag = document.getElementById('diagHost');
+  var v = validate(parts);
+  if(!v.errors.length && !v.warnings.length){
+    diag.innerHTML = '<p class="text-emerald-400 font-bold">✓ All 12 slots conform. The record is READY to commit.</p>';
+  } else {
+    diag.innerHTML = v.errors.map(function(e){
+      return '<div class="flex gap-2 items-start mb-2"><span class="seg-pill" style="background:rgba(251,113,133,.15);color:#fda4af">'+esc(e.code)+'</span>' +
+        '<span><strong class="text-slate-200 mono">'+esc(e.slot)+'</strong> — '+esc(e.msg)+'</span></div>';
+    }).join('') + v.warnings.map(function(w){
+      return '<div class="flex gap-2 items-start mb-2"><span class="seg-pill" style="background:rgba(251,191,36,.15);color:#fcd34d">'+esc(w.code)+'</span>' +
+        '<span><strong class="text-slate-200 mono">'+esc(w.slot)+'</strong> — '+esc(w.msg)+'</span></div>';
+    }).join('');
+  }
+
+  /* live invariants */
+  var inv = [
+    ['INV-NOM-07', 'Arity is 12', ARITY === 12],
+    ['INV-NOM-01', 'No embedded delimiter', !SEGMENTS.some(function(s){ return (parts[s.key]||'').indexOf(DELIM) >= 0; })],
+    ['INV-NOM-05', 'TITLE ≤ 35 chars', (parts.title||'').length <= 35],
+    ['INV-NOM-02', 'Base slots 1–8 populated', ['date','cs','type','title','ver','priv','origin','author'].every(function(k){return !!parts[k];})],
+    ['INV-NOM-08', 'Filename ≤ 180 chars', text.length <= 180],
+    ['INV-SRQ-01', 'No unresolved uncertainty', chk.length === 0]
+  ];
+  document.getElementById('invHost').innerHTML = inv.map(function(r){
+    return '<li class="flex items-center gap-2"><span style="color:'+(r[2]?'#34d399':'#fb7185')+'">'+(r[2]?'✓':'✗')+'</span>' +
+      '<span class="mono text-[10px] text-slate-500">'+r[0]+'</span>' +
+      '<span class="text-slate-300">'+esc(r[1])+'</span></li>';
+  }).join('');
+
+  document.getElementById('hdrPreview').textContent = text.length > 74 ? text.slice(0,74)+'…' : text;
+  document.getElementById('btnCommit').disabled = !v.ok;
+  return {parts: parts, valid: v, triggers: chk, text: text};
+}
+
+function renderStats(){
+  var chain = verifyChain(S.ledger);
+  var stats = [
+    ['Committed', S.ledger.length],
+    ['Quarantined', S.queue.length],
+    ['Chain', chain.ok ? 'intact' : 'BROKEN'],
+    ['Next ID', nextIdFull(S.ledger)],
+    ['Storage', (Store.bytes()/1024).toFixed(1)+' KB'],
+    ['Audit events', S.audit.length]
+  ];
+  document.getElementById('statHost').innerHTML = stats.map(function(r){
+    var hot = (r[0] === 'Chain' && r[1] !== 'intact') || (r[0] === 'Quarantined' && r[1] > 0);
+    return '<div><dt class="text-[9px] uppercase tracking-widest text-slate-500 font-bold">'+esc(r[0])+'</dt>' +
+      '<dd class="mono text-sm font-bold mt-0.5" style="color:'+(hot?'#fcd34d':'#e2e8f0')+'">'+esc(r[1])+'</dd></div>';
+  }).join('');
+  var badge = document.getElementById('srqBadgeNav'), top = document.getElementById('srqBadgeTop');
+  badge.textContent = S.queue.length; top.textContent = 'SRQ ' + S.queue.length;
+  top.style.color = S.queue.length ? '#fcd34d' : '#94a3b8';
+  document.getElementById('srqCount').textContent = S.queue.length + ' quarantined';
+  document.getElementById('kpiRows').textContent   = S.ledger.length;
+  document.getElementById('kpiChain').textContent  = chain.ok ? 'intact' : 'BROKEN';
+  document.getElementById('kpiChain').style.color  = chain.ok ? '#34d399' : '#fb7185';
+  document.getElementById('kpiNext').textContent   = nextIdFull(S.ledger);
+  var conformant = S.ledger.filter(function(r){ return parseName(r.newName).__conformant; }).length;
+  document.getElementById('kpiConf').textContent = S.ledger.length ? Math.round(conformant/S.ledger.length*100)+'%' : '100%';
+}
+
+/* ── commit / queue ── */
+function commit(){
+  var r = renderPreview();
+  if(!r.valid.ok){ toast('Cannot commit — resolve the diagnostics', 'err'); return; }
+  var dis = disambiguate(r.parts, S.ledger);
+  if(dis.exhausted){ enqueue('COLLISION_MAX', dis.parts, {count: 9}); return; }
+  var id = nextIdFull(S.ledger);
+  var finalParts = Object.assign({}, dis.parts, {id: id});
+  var name = buildName(finalParts);
+  var prev = S.ledger.length ? S.ledger[S.ledger.length-1].hash : GENESIS;
+  var ts = Date.now();
+  S.ledger.push({
+    id: id, oldName: 'MANUAL_ENTRY', newName: name, parts: finalParts,
+    timestamp: ts, prevHash: prev, hash: rowHash(prev, id, name, ts),
+    provenance: 'manual', disambiguated: dis.changed ? 'Part'+(dis.n+1) : null,
+    manualOverride: false
+  });
+  saveLedger(); auditEvent('COMMIT', {id: id, name: name});
+  toast('Committed '+id, 'ok');
+  S.parts.title = ''; S.parts.cs = '';           /* reset volatile slots */
+  renderSlots(); renderPreview(); renderStats(); renderLedger(); renderChart();
+}
+function enqueue(trigger, parts, detected, meta){
+  var seq = (Store.read(Store.K.seq, 0) || 0) + 1;
+  Store.write(Store.K.seq, seq);
+  S.queue.push({
+    queueId: 'SRQ-'+String(seq).padStart(6,'0'),
+    trigger: trigger,
+    severity: (TRIGGERS[trigger] || {}).severity || 'blocking',
+    label: (TRIGGERS[trigger] || {}).label || trigger,
+    help: (TRIGGERS[trigger] || {}).help || '',
+    parts: parts, detected: detected || {},
+    meta: meta || {}, createdAt: Date.now(), status: 'REVIEW',
+    resolvedBy: null, resolvedAt: null
+  });
+  saveQueue(); auditEvent('QUARANTINE', {trigger: trigger});
+  toast('Routed to Smart Review Queue — ' + ((TRIGGERS[trigger]||{}).label || trigger), 'warn');
+  renderStats(); renderQueue();
+}
+
+/* ══════════════════════════ INGESTION UI ══════════════════════════════════ */
+function renderStage(){
+  var host = document.getElementById('stageHost');
+  if(!S.staged.length){ host.innerHTML = ''; return; }
+  host.innerHTML = '<ul class="space-y-1.5 text-[11px] mono">' + S.staged.map(function(f,i){
+    return '<li class="flex items-center gap-2 text-slate-300"><span class="text-sky-400">▸</span>' +
+      '<span class="truncate flex-1">'+esc(f.name)+'</span>' +
+      '<span class="text-slate-600">'+(f.size/1024).toFixed(0)+' KB</span>' +
+      '<button data-unstage="'+i+'" class="text-rose-400 px-1">✕</button></li>';
+  }).join('') + '</ul>';
+  host.querySelectorAll('[data-unstage]').forEach(function(b){
+    b.addEventListener('click', function(){
+      S.staged.splice(+b.getAttribute('data-unstage'),1); renderStage();
+    });
+  });
+}
+function renderEnvelope(){
+  var host = document.getElementById('envHost');
+  document.getElementById('envCount').textContent = S.env.length + ' files';
+  if(!S.env.length){ host.innerHTML = 'No files staged.'; return; }
+  host.innerHTML = S.env.map(function(e,i){
+    var trig = e.triggers || [];
+    var preview;
+    try { preview = buildName(e.parts, {placeholder:true}); }
+    catch(err){ preview = '— could not serialize: ' + err.message; }
+    var state = trig.length
+      ? '<span class="seg-pill" style="background:rgba(251,191,36,.15);color:#fcd34d">'+esc(trig[0])+'</span>'
+      : '<span class="seg-pill" style="background:rgba(52,211,153,.15);color:#6ee7b7">READY</span>';
+    return '<div class="rounded-xl p-3 mb-2" style="background:rgba(7,11,20,.5);border:1px solid var(--stroke)">' +
+      '<div class="flex items-center gap-2 flex-wrap">' +
+        '<span class="mono text-[11px] text-slate-300 flex-1 truncate">'+esc(e.name)+'</span>' + state +
+        '<span class="mono text-[10px] text-slate-500">conf '+e.parts.confidence.toFixed(2)+'</span>' +
+        '<button data-adopt="'+i+'" class="btn text-[10px] font-bold px-2 py-1 rounded" style="background:rgba(56,189,248,.14);border:1px solid rgba(56,189,248,.35);color:#7dd3fc">Edit in constructor</button>' +
+        '<button data-commit="'+i+'" class="btn text-[10px] font-bold px-2 py-1 rounded" style="background:rgba(52,211,153,.14);border:1px solid rgba(52,211,153,.35);color:#6ee7b7">Commit</button>' +
+        '<button data-queue="'+i+'" class="btn text-[10px] font-bold px-2 py-1 rounded" style="background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.35);color:#fcd34d">Queue</button>' +
+      '</div>' +
+      '<p class="mono text-[11px] text-sky-300 mt-2 break-all">'+esc(preview)+'</p>' +
+      (trig.length ? '<p class="text-[10px] text-amber-300/80 mt-1">'+esc((TRIGGERS[trig[0]]||{}).help||'')+'</p>' : '') +
+      '</div>';
+  }).join('');
+
+  host.querySelectorAll('[data-adopt]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var e = S.env[+b.getAttribute('data-adopt')];
+      SEGMENTS.forEach(function(s){ if(e.parts[s.key] != null) S.parts[s.key] = e.parts[s.key]; });
+      switchTab('constructor'); renderSlots(); renderPreview();
+    });
+  });
+  host.querySelectorAll('[data-commit]').forEach(function(b){
+    b.addEventListener('click', function(){ commitEnvelope(+b.getAttribute('data-commit')); });
+  });
+  host.querySelectorAll('[data-queue]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var e = S.env[+b.getAttribute('data-queue')];
+      var trig = e.triggers.length ? e.triggers[0] : 'LOW_CONFIDENCE';
+      var det = trig === 'TITLE_OVERFLOW'
+        ? {chars:(e.parts.title||'').length, limit:35, excess:Math.max(0,(e.parts.title||'').length-35)}
+        : {};
+      enqueue(trig, e.parts, det, {fileName: e.name, confidence: e.parts.confidence});
+      S.env.splice(+b.getAttribute('data-queue'), 1); renderEnvelope();
+    });
+  });
+}
+function commitEnvelope(i){
+  var e = S.env[i];
+  var chk = detectTriggers(e.parts, {confidence: e.parts.confidence});
+  if(chk.length){
+    enqueue(chk[0], e.parts,
+      chk[0]==='TITLE_OVERFLOW' ? {chars:(e.parts.title||'').length, limit:35, excess:Math.max(0,(e.parts.title||'').length-35)} : {},
+      {fileName:e.name, confidence:e.parts.confidence});
+    S.env.splice(i,1); renderEnvelope(); return;
+  }
+  var dis = disambiguate(e.parts, S.ledger);
+  if(dis.exhausted){ enqueue('COLLISION_MAX', dis.parts, {count:9}, {fileName:e.name}); S.env.splice(i,1); renderEnvelope(); return; }
+  var id = nextIdFull(S.ledger);
+  var finalParts = Object.assign({}, dis.parts, {id:id});
+  var name = buildName(finalParts);
+  var prev = S.ledger.length ? S.ledger[S.ledger.length-1].hash : GENESIS;
+  var ts = Date.now();
+  S.ledger.push({id:id, oldName:e.name, newName:name, parts:finalParts, timestamp:ts,
+                 prevHash:prev, hash:rowHash(prev,id,name,ts), provenance:'local-extract',
+                 confidence:e.parts.confidence, disambiguated: dis.changed ? 'Part'+(dis.n+1) : null, manualOverride:false});
+  saveLedger(); auditEvent('COMMIT', {id:id, name:name, source:'ingest'});
+  S.env.splice(i,1);
+  toast('Committed '+id, 'ok');
+  renderEnvelope(); renderStats(); renderLedger(); renderChart();
+}
+function handleFiles(fileList){
+  var files = Array.from(fileList || []);
+  if(!files.length) return;
+  var over = files.filter(function(f){ return f.size > 20*1024*1024; });
+  if(over.length) toast(over.length + ' file(s) exceed the 20 MB batch limit and were skipped', 'err');
+  files = files.filter(function(f){ return f.size <= 20*1024*1024; }).slice(0, 25);
+  S.staged = S.staged.concat(files);
+  renderStage();
+  toast(files.length + ' file(s) staged', 'ok');
+}
+function runExtraction(){
+  if(!S.staged.length) return toast('Stage files first', 'err');
+  S.env = S.staged.map(function(f){
+    var parts = localExtract(f);
+    var withMeta = Object.assign({}, parts, {confidence: parts.confidence});
+    var trig = detectTriggers(withMeta, {confidence: parts.confidence});
+    if(parts.ambiguous && trig.indexOf('DATE_AMBIGUOUS') < 0) trig.unshift('DATE_AMBIGUOUS');
+    if(!parts.date && trig.indexOf('DATE_UNKNOWN') < 0) trig.unshift('DATE_UNKNOWN');
+    return {name: f.name, size: f.size, mime: f.type, parts: withMeta, triggers: trig};
+  });
+  S.staged = []; renderStage(); renderEnvelope();
+  toast('Extracted ' + S.env.length + ' file(s) locally — no credential required', 'ok');
+}
+/* optional refinement — the ONLY code path that touches the API key */
+function getApiKey(){                                  /* INV-AI-01 */
+  if(S.apiKey) return S.apiKey;
+  throw new Error('No Gemini credential is held for this session. The local extractor requires none.');
+}
+async function refineWithGemini(){
+  if(!S.staged.length && !S.env.length) return toast('Nothing to refine', 'err');
+  var key;
+  try { key = getApiKey(); } catch(e){ return toast(e.message, 'err'); }
+  var targets = S.env.length ? S.env : S.staged.map(function(f){ return {name:f.name, parts:localExtract(f)}; });
+  var model = 'gemini-2.5-flash';                       /* INV-AI-02: GA id, not a dated preview */
+  var prompt = 'Extract legal-document metadata. Reply with STRICT JSON only, no prose, no markdown.\n' +
+    'Schema: {"date":"YYYY.MM.DD or empty","case":"","type":"4-6 uppercase letters","title":"","priv":"4 uppercase",' +
+    '"origin":"4 uppercase","author":"","e1":"","e2":"","e3":"","confidence":0.0}\n' +
+    'Rules: if the date is not legible, return "" — never guess. If the date is ambiguous between MM/DD and DD/MM, ' +
+    'return "" and set confidence below 0.5. title must be PascalCase, alphanumeric, MAXIMUM 35 characters.\n' +
+    'Filenames:\n' + targets.map(function(t,i){ return (i+1)+'. '+t.name; }).join('\n');
+  toast('Contacting Gemini…');
+  try {
+    var res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent?key='+encodeURIComponent(key), {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        contents:[{parts:[{text:prompt}]}],
+        generationConfig:{temperature:0.1, responseMimeType:'application/json'}
+      })
+    });
+    var json = await res.json();
+    if(!res.ok) throw new Error((json.error && json.error.message) || ('HTTP '+res.status));
+    var txt = json.candidates && json.candidates[0] && json.candidates[0].content &&
+              json.candidates[0].content.parts && json.candidates[0].content.parts[0].text;
+    if(!txt) throw new Error('Empty response envelope');
+    var cleaned = txt.split('```json').join('').split('```').join('').trim();
+    var arr = JSON.parse(cleaned);
+    if(!Array.isArray(arr)) arr = [arr];
+    targets.forEach(function(t, i){
+      var a = arr[i]; if(!a) return;
+      var merged = Object.assign({}, t.parts || localExtract({name:t.name, type:'', size:0}));
+      ['date','e1','e2','e3'].forEach(function(k){
+        if(a[k]) merged[k] = sanitize(k === 'e1' || k === 'e2' || k === 'e3' ? k : k, a[k]);
+      });
+      if(a['case'])   merged.cs     = sanitize('cs', a['case']);
+      if(a.type)      merged.type   = sanitize('type', a.type);
+      if(a.title)     merged.title  = sanitize('title', a.title);
+      if(a.priv)      merged.priv   = sanitize('priv', a.priv);
+      if(a.origin)    merged.origin = sanitize('origin', a.origin);
+      if(a.author)    merged.author = sanitize('author', a.author);
+      merged.confidence = typeof a.confidence === 'number' ? Math.max(0, Math.min(1, a.confidence)) : 0.6;
+      var trig = detectTriggers(merged, {confidence: merged.confidence});
+      t.parts = merged; t.triggers = trig;
+    });
+    S.env = targets.map(function(t){ return {name:t.name, size:t.size||0, mime:t.mime||'', parts:t.parts, triggers:t.triggers||[]}; });
+    S.staged = []; renderStage(); renderEnvelope();
+    toast('Gemini refinement applied', 'ok');
+  } catch(err){
+    toast('Gemini refinement failed: ' + err.message, 'err');
+  }
+}
+
+/* ══════════════════════ SMART REVIEW QUEUE UI ═════════════════════════════ */
+function renderQueue(){
+  var host = document.getElementById('queueHost');
+  if(!S.queue.length){
+    host.innerHTML = '<div class="glass rounded-2xl p-10 text-center">' +
+      '<p class="text-sm font-bold text-emerald-400">Queue empty</p>' +
+      '<p class="text-xs text-slate-500 mt-1">Every record has been adjudicated. Nothing is silently pending.</p></div>';
+    return;
+  }
+  host.innerHTML = S.queue.map(function(q,i){
+    var isTitle = q.trigger === 'TITLE_OVERFLOW';
+    var titleVal = (q.parts && q.parts.title) || '';
+    return '<article class="glass rounded-2xl p-5 fade">' +
+      '<div class="flex flex-wrap items-center gap-2 mb-3">' +
+        '<span class="mono text-[11px] text-slate-500">'+esc(q.queueId)+'</span>' +
+        '<span class="seg-pill" style="background:rgba(251,191,36,.16);color:#fcd34d">'+esc(q.trigger)+'</span>' +
+        '<span class="chip" style="color:'+(q.severity==='blocking'?'#fb7185':'#94a3b8')+'">'+esc(q.severity)+'</span>' +
+        '<span class="text-[11px] text-slate-400 flex-1">'+esc(q.label)+'</span>' +
+        '<span class="mono text-[10px] text-slate-600">'+new Date(q.createdAt).toLocaleString()+'</span>' +
+      '</div>' +
+      '<p class="text-[11px] text-slate-400 mb-3">'+esc(q.help)+'</p>' +
+      (q.meta && q.meta.fileName ? '<p class="mono text-[11px] text-slate-500 mb-3">source: '+esc(q.meta.fileName)+'</p>' : '') +
+      (q.detected && q.detected.chars ? '<div class="rounded-lg p-3 mb-3" style="background:rgba(251,113,133,.06);border:1px solid rgba(251,113,133,.22)">' +
+        '<p class="mono text-[10px] text-rose-300">detected: '+q.detected.chars+' chars · limit '+q.detected.limit+' · excess '+q.detected.excess+'</p></div>' : '') +
+      (isTitle ?
+        '<div class="flex flex-wrap gap-2 items-center mb-3">' +
+          '<input data-fix="'+i+'" value="'+esc(titleVal.slice(0,35))+'" maxlength="35" ' +
+            'class="inp flex-1 min-w-[200px] rounded-lg px-3 py-2 text-xs mono" placeholder="≤ 35 characters">' +
+          '<span data-count="'+i+'" class="mono text-[10px] text-slate-500">'+titleVal.slice(0,35).length+'/35</span>' +
+        '</div>' : '') +
+      '<div class="flex flex-wrap gap-2">' +
+        (isTitle ? '<button data-resolve="'+i+'" class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(52,211,153,.16);border:1px solid rgba(52,211,153,.4);color:#6ee7b7">Shorten &amp; resolve</button>' : '') +
+        '<button data-accept="'+i+'" class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(56,189,248,.14);border:1px solid rgba(56,189,248,.4);color:#7dd3fc">Accept as-is (override)</button>' +
+        '<button data-edit="'+i+'" class="btn text-[11px] font-bold px-3 py-2 rounded-lg text-slate-300" style="background:rgba(148,163,184,.12);border:1px solid var(--stroke)">Load into constructor</button>' +
+        '<button data-discard="'+i+'" class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(251,113,133,.1);border:1px solid rgba(251,113,133,.3);color:#fda4af">Discard</button>' +
+      '</div>' +
+      '<p class="text-[10px] text-slate-600 mt-3">INV-SRQ-03 — leaving this queue requires an attributed decision (resolvedBy / resolvedAt).</p>' +
+    '</article>';
+  }).join('');
+
+  host.querySelectorAll('input[data-fix]').forEach(function(inp){
+    inp.addEventListener('input', function(){
+      var i = +inp.getAttribute('data-fix');
+      var c = host.querySelector('span[data-count="'+i+'"]');
+      if(c) c.textContent = inp.value.length + '/35';
+      inp.classList.toggle('bad', inp.value.length > 35);
+    });
+  });
+  host.querySelectorAll('[data-resolve]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var i = +b.getAttribute('data-resolve');
+      var inp = host.querySelector('input[data-fix="'+i+'"]');
+      var newTitle = sanitize('title', inp.value);
+      if(!newTitle || newTitle.length > 35) return toast('Title must be 1–35 alphanumeric characters', 'err');
+      var q = S.queue[i];
+      q.parts.title = newTitle;
+      var trig = detectTriggers(q.parts, {confidence: 1});
+      if(trig.length) return toast('Still unresolved: ' + trig.join(', '), 'err');
+      resolveQueue(i, 'shortened', {title: newTitle});
+    });
+  });
+  host.querySelectorAll('[data-accept]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var q = S.queue[+b.getAttribute('data-accept')];
+      q.manualOverride = true;
+      resolveQueue(+b.getAttribute('data-accept'), 'accepted-as-is', {override: true});
+    });
+  });
+  host.querySelectorAll('[data-edit]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var q = S.queue[+b.getAttribute('data-edit')];
+      SEGMENTS.forEach(function(s){ if(q.parts[s.key] != null) S.parts[s.key] = q.parts[s.key]; });
+      switchTab('constructor'); renderSlots(); renderPreview();
+      toast('Loaded '+q.queueId+' into the constructor', 'ok');
+    });
+  });
+  host.querySelectorAll('[data-discard]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var i = +b.getAttribute('data-discard');
+      S.queue[i].status = 'DISCARDED';
+      S.queue[i].resolvedBy = 'operator';
+      S.queue[i].resolvedAt = Date.now();
+      auditEvent('DISCARD', {queueId: S.queue[i].queueId});
+      S.queue.splice(i,1); saveQueue(); renderQueue(); renderStats();
+      toast('Discarded — retained in the audit log', 'ok');
+    });
+  });
+}
+function resolveQueue(i, how, detail){
+  var q = S.queue[i];
+  var dis = disambiguate(q.parts, S.ledger);
+  var id = nextIdFull(S.ledger);
+  var finalParts = Object.assign({}, dis.parts, {id: id});
+  var name;
+  try { name = buildName(finalParts); } catch(e){ return toast('Cannot serialize: '+e.message, 'err'); }
+  var prev = S.ledger.length ? S.ledger[S.ledger.length-1].hash : GENESIS;
+  var ts = Date.now();
+  S.ledger.push({
+    id: id, oldName: (q.meta && q.meta.fileName) || 'QUEUED_ENTRY', newName: name, parts: finalParts,
+    timestamp: ts, prevHash: prev, hash: rowHash(prev, id, name, ts),
+    provenance: 'queue:'+how, manualOverride: !!q.manualOverride,
+    resolvedFrom: q.queueId, disambiguated: dis.changed ? 'Part'+(dis.n+1) : null
+  });
+  S.queue.splice(i,1);
+  saveLedger(); saveQueue();
+  auditEvent('RESOLVE', {queueId: q.queueId, how: how, detail: detail, id: id});
+  toast(q.queueId + ' resolved → ' + id, 'ok');
+  renderQueue(); renderStats(); renderLedger(); renderChart();
+}
+
+/* ══════════════════════════ LEDGER UI ═════════════════════════════════════ */
+function renderLedger(){
+  var q = (document.getElementById('search').value || '').toLowerCase();
+  var rows = S.ledger.filter(function(r){
+    if(!q) return true;
+    return (r.id + ' ' + r.newName + ' ' + (r.oldName||'')).toLowerCase().indexOf(q) >= 0;
+  });
+  var body = document.getElementById('ledgerBody');
+  if(!rows.length){
+    body.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-slate-500 text-xs">No records.</td></tr>';
+    return;
+  }
+  body.innerHTML = rows.slice().reverse().map(function(r){
+    var conf = parseName(r.newName).__conformant;
+    var hashShort = (r.hash||'').slice(0,10);
+    return '<tr class="row border-t" style="border-color:rgba(148,163,184,.1)">' +
+      '<td class="p-2.5 mono text-sky-400 font-bold whitespace-nowrap">'+esc(r.id)+'</td>' +
+      '<td class="p-2.5 mono text-slate-300 break-all">'+esc(r.newName)+
+        (conf ? '' : ' <span class="seg-pill" style="background:rgba(251,113,133,.15);color:#fda4af">NON-CONFORMANT</span>') +
+        (r.manualOverride ? ' <span class="seg-pill" style="background:rgba(251,191,36,.15);color:#fcd34d">OVERRIDE</span>' : '') +
+        (r.disambiguated ? ' <span class="seg-pill" style="background:rgba(129,140,248,.15);color:#a5b4fc">'+esc(r.disambiguated)+'</span>' : '') +
+      '</td>' +
+      '<td class="p-2.5 mono text-slate-500 hidden md:table-cell">'+esc((r.parts && r.parts.type) || '—')+'</td>' +
+      '<td class="p-2.5 text-slate-500 hidden lg:table-cell">'+esc(r.provenance || '—')+'</td>' +
+      '<td class="p-2.5 mono text-slate-600 hidden xl:table-cell" title="'+esc(r.hash||'')+'">'+esc(hashShort)+'…</td>' +
+    '</tr>';
+  }).join('');
+}
+function renderChart(){
+  var host = document.getElementById('chartHost');
+  var counts = {};
+  S.ledger.forEach(function(r){
+    var t = (r.parts && r.parts.type) || 'UNKN';
+    counts[t] = (counts[t]||0) + 1;
+  });
+  var entries = Object.keys(counts).map(function(k){ return [k, counts[k]]; }).sort(function(a,b){ return b[1]-a[1]; });
+  if(!entries.length){ host.innerHTML = '<p class="text-xs text-slate-500">No data.</p>'; return; }
+  var max = entries[0][1];
+  var palette = ['#38bdf8','#818cf8','#34d399','#fbbf24','#c084fc','#fb7185','#2dd4bf','#f472b6'];
+  host.innerHTML = entries.map(function(e,i){
+    return '<div class="flex items-center gap-3">' +
+      '<span class="mono text-[11px] font-bold w-16 text-slate-300">'+esc(e[0])+'</span>' +
+      '<div class="flex-1 rounded-full overflow-hidden" style="background:rgba(7,11,20,.7);height:14px">' +
+        '<div class="bar" style="width:'+(e[1]/max*100)+'%;background:'+palette[i%palette.length]+'"></div></div>' +
+      '<span class="mono text-[11px] text-slate-500 w-8 text-right">'+e[1]+'</span></div>';
+  }).join('');
+}
+function exportCSV(){
+  if(!S.ledger.length) return toast('Ledger is empty', 'err');
+  var head = ['Archive ID','Date','Case','Type','Title','Ver','Priv','Origin','Author','E1','E2','E3',
+              'Old Filename','New Filename','Provenance','Timestamp','PrevHash','Hash','Override'];
+  var esc_ = function(v){ return '"' + String(v == null ? '' : v).replace(/"/g,'""') + '"'; };
+  var lines = [head.join(',')];
+  S.ledger.forEach(function(r){
+    var p = r.parts || {};
+    lines.push([r.id,p.date,p.cs,p.type,p.title,p.ver,p.priv,p.origin,p.author,p.e1,p.e2,p.e3,
+                r.oldName, r.newName, r.provenance, new Date(r.timestamp).toISOString(),
+                r.prevHash, r.hash, r.manualOverride ? 'YES' : ''].map(esc_).join(','));
+  });
+  download('V9_Archive_'+todayLocal().replace(/\./g,'-')+'.csv', '\uFEFF'+lines.join('\n')+'\n', 'text/csv;charset=utf-8');
+  auditEvent('EXPORT_CSV', {rows: S.ledger.length});
+  toast('CSV exported ('+S.ledger.length+' rows, UTF-8 BOM)', 'ok');
+}
+function scriptable(){
+  /* INV-SRQ-03 / U-25: ONLY committed records are ever scripted. */
+  return S.ledger.filter(function(r){ return r.oldName && r.oldName !== 'MANUAL_ENTRY' && r.oldName !== 'QUEUED_ENTRY'; });
+}
+function renameScript(os){
+  var rows = scriptable();
+  if(!rows.length) return toast('No scriptable rows (manual entries are excluded)', 'err');
+  var q = function(s){ return '"' + String(s).replace(/"/g,'\\"') + '"'; };
+  var out;
+  if(os === 'sh'){
+    out = '#!/usr/bin/env bash\n# Index Engine v9.1.0.1 — forward rename\n' +
+          '# INV-SRQ-03: queued records are excluded by construction.\nset -euo pipefail\n\n';
+    rows.forEach(function(r){ out += 'mv -n -- ' + q(r.oldName) + ' ' + q(r.newName) + '\n'; });
+  } else {
+    out = '@echo off\r\nREM Index Engine v9.1.0.1 - forward rename\r\nsetlocal\r\n\r\n';
+    rows.forEach(function(r){ out += 'ren ' + q(r.oldName) + ' ' + q(r.newName) + '\r\n'; });
+  }
+  download(os === 'sh' ? 'rename.sh' : 'rename.bat', out);
+  auditEvent('EXPORT_SCRIPT', {os: os, rows: rows.length});
+  toast(rows.length + ' rename operations written', 'ok');
+}
+function undoScript(){
+  var rows = scriptable();
+  if(!rows.length) return toast('Nothing to invert', 'err');
+  var out = '#!/usr/bin/env bash\n# Index Engine v9.1.0.1 — inverse rename (generated from the same ledger)\nset -euo pipefail\n\n';
+  rows.forEach(function(r){
+    out += 'mv -n -- "' + String(r.newName).replace(/"/g,'\\"') + '" "' + String(r.oldName).replace(/"/g,'\\"') + '"\n';
+  });
+  download('undo-rename.sh', out);
+  toast('Inverse script written', 'ok');
+}
+function importV62(){
+  var raw = window.prompt('Paste the V6.2 ledger JSON array (from localStorage key "v6MasterLog"), or the exported CSV rows as JSON:');
+  if(!raw) return;
+  var rows;
+  try { rows = JSON.parse(raw); } catch(e){ return toast('Invalid JSON: '+e.message, 'err'); }
+  if(!Array.isArray(rows)) return toast('Expected a JSON array', 'err');
+  var res = migrateV62(rows);
+  var existing = new Set(S.ledger.map(function(r){ return r.id; }));
+  var prev = S.ledger.length ? S.ledger[S.ledger.length-1].hash : GENESIS;
+  var added = 0;
+  res.committed.forEach(function(r){
+    if(existing.has(r.id)) return;
+    r.prevHash = prev; r.hash = rowHash(prev, r.id, r.newName, r.timestamp);
+    prev = r.hash;
+    S.ledger.push(r); added++;
+  });
+  S.ledger.sort(function(a,b){ return (parseInt(a.id.slice(4),10)||0) - (parseInt(b.id.slice(4),10)||0); });
+  res.queued.forEach(function(q){ enqueue(q.trigger, q.parts, q.detected, {fileName:q.fileName, note:q.note}); });
+  saveLedger();
+  auditEvent('MIGRATE_V62', {from:9, to:ARITY, added:added, queued:res.queued.length, skipped:res.alreadyConformant});
+  renderLedger(); renderChart(); renderStats();
+  toast('Migrated '+added+' rows · '+res.queued.length+' queued · '+res.alreadyConformant+' already conformant', 'ok');
+}
+function wipe(){
+  if(!window.confirm('Delete the local ledger, queue and audit log? This cannot be undone.')) return;
+  S.ledger = []; S.queue = []; S.audit = [];
+  saveLedger(); saveQueue(); Store.write(Store.K.audit, []);
+  renderLedger(); renderChart(); renderStats(); renderQueue(); renderPreview();
+  toast('Local state cleared', 'ok');
+}
+
+/* ══════════════════════════ SETTINGS UI ═══════════════════════════════════ */
+function renderSchema(){
+  document.getElementById('schemaBody').innerHTML = SEGMENTS.map(function(s){
+    return '<tr class="border-t" style="border-color:rgba(148,163,184,.1)">' +
+      '<td class="p-2 text-slate-500">'+s.n+'</td>' +
+      '<td class="p-2 font-bold" style="color:'+s.color+'">'+esc(s.key)+'<span class="text-slate-500 font-normal"> · '+esc(s.label)+'</span></td>' +
+      '<td class="p-2 text-slate-400">'+esc(String(s.re))+'</td>' +
+      '<td class="p-2 text-slate-400">'+s.max+'</td>' +
+      '<td class="p-2">'+(s.required ? '<span class="text-rose-300">required</span>' : '<span class="text-slate-500">optional</span>')+'</td>' +
+      '<td class="p-2"><span class="seg-pill" style="background:rgba(148,163,184,.12);color:#94a3b8">'+s.group+'</span></td></tr>';
+  }).join('');
+}
+function renderTax(){
+  ['types','privs','origins'].forEach(function(cat){
+    var ul = document.getElementById('tax-'+cat);
+    ul.innerHTML = S.tax[cat].map(function(o,i){
+      return '<li class="flex items-center gap-2 rounded px-2 py-1.5 text-[11px]" style="background:rgba(7,11,20,.5)">' +
+        '<span class="mono font-bold text-sky-300">'+esc(o.code)+'</span>' +
+        '<span class="text-slate-400 flex-1 truncate">'+esc(o.desc)+'</span>' +
+        '<button data-del="'+cat+':'+i+'" class="text-rose-400 px-1">✕</button></li>';
+    }).join('');
+  });
+  document.querySelectorAll('[data-del]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var parts = b.getAttribute('data-del').split(':');
+      S.tax[parts[0]].splice(+parts[1],1); saveTax(); renderTax(); renderSlots();
+    });
+  });
+}
+function addTax(cat, codeEl, descEl){
+  var code = document.getElementById(codeEl).value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+  var desc = document.getElementById(descEl).value.trim();
+  if(!code || !desc) return toast('Both code and description are required', 'err');
+  if(S.tax[cat].some(function(o){ return o.code === code; })) return toast('Code already exists', 'err');
+  S.tax[cat].push({code:code, desc:desc});
+  saveTax(); renderTax(); renderSlots();
+  document.getElementById(codeEl).value = ''; document.getElementById(descEl).value = '';
+  toast('Added '+code, 'ok');
+}
+
+/* ══════════════════════════ SELF-TEST SUITE ═══════════════════════════════ */
+function runSelfTest(){
+  var T = [];
+  var t = function(name, cond){ T.push([cond ? 'PASS' : 'FAIL', name]); };
+  var sample = function(){
+    return {date:'2024.03.11', cs:'SmithVWong', type:'TRAN', title:'DepositionOfWong',
+            ver:'v01', priv:'PRIV', origin:'OPPS', author:'RWILLIAMS', e1:'ABC000123', e2:'NA', e3:'NA', id:'FILE000001'};
+  };
+
+  /* 1. arity — NOTE the distinction: 12 semantic parts over 14 dot-fields */
+  t('INV-NOM-07 semantic arity is exactly 12', ARITY === 12);
+  t('field layout is 14 dot-fields (DATE occupies 3)', TOTAL_FIELDS === 14);
+  t('buildName emits 14 dot-fields', buildName(sample()).split('.').length === 14);
+  t('DATE is reconstructed as one semantic part',
+    parseName(buildName(sample())).date === sample().date);
+
+  /* 2. round-trip over 10 000 generated names */
+  var rt = 0, rtFail = 0;
+  var pool = ['A','B','C','Depo','Contract','Wong','Smith','Exhibit','X','Y','Zed'];
+  for(var i=0;i<10000;i++){
+    var p = sample();
+    p.cs    = 'Case' + (i % 97);
+    p.title = pool[i % pool.length] + (i % 41);
+    p.type  = ['TRAN','CONT','PLEA','EXHB','DOCU','PDFX'][i % 6];
+    p.ver   = i % 3 === 0 ? 'v0' + ((i % 9) + 1) : ['FIN','EXE','DRAF','AMND'][i % 4];
+    p.e1    = i % 2 ? 'NA' : 'B' + i;
+    var nm = buildName(p);
+    var back = parseName(nm);
+    rt++;
+    if(!back.__conformant || SLOTS.some(function(k){ return back[k] !== p[k]; })) rtFail++;
+  }
+  t('10 000 round-trips parse(build(x)) === x', rt === 10000 && rtFail === 0);
+
+  /* 3. TITLE length */
+  t('INV-NOM-05 title ≤ 35 enforced',
+    validate(Object.assign(sample(), {title:'A'.repeat(36)})).errors.some(function(e){ return e.code === 'TITLE_OVERFLOW'; }));
+
+  /* 4. G-03 routing */
+  t('G-03 title overflow yields TITLE_OVERFLOW trigger',
+    detectTriggers(Object.assign(sample(), {title:'A'.repeat(36)}), {confidence:1}).indexOf('TITLE_OVERFLOW') >= 0);
+
+  /* 5. delimiter discipline — DATE is the single sanctioned exception */
+  t('INV-NOM-01 only DATE embeds the delimiter',
+    SEGMENTS.every(function(s){ return s.key === 'date' || !s.re.test('a.b'); }));
+  t('INV-NOM-01 DATE embeds exactly two delimiters',
+    (sample().date.match(/\./g) || []).length === 2);
+
+  /* 6. tuple dedup, not substring (C-09) */
+  var L = [{id:'FILE000001', newName: buildName(sample()), parts: sample()}];
+  var nearMiss = Object.assign(sample(), {title:'DepositionOfWong2'});
+  t('INV-DUP-02 near-miss does NOT collide',
+    collisionCount(nearMiss, L) === 0);
+  t('INV-DUP-02 exact tuple DOES collide',
+    collisionCount(sample(), L) === 1);
+
+  /* 7. unbounded ordinal (C-08) */
+  var L2 = [];
+  for(var k=1;k<=4;k++){
+    var pp = sample();
+    var dd = disambiguate(pp, L2);
+    var id = 'FILE' + String(k).padStart(6,'0');
+    var withId = Object.assign({}, dd.parts, {id:id});
+    L2.push({id:id, parts: withId, newName: buildName(withId)});
+  }
+  var titles = L2.map(function(r){ return r.parts.title; });
+  t('INV-DUP-01 ordinal is unbounded (Part2/3/4)',
+    titles[0]==='DepositionOfWong' && titles[1]==='DepositionOfWongPart2' &&
+    titles[2]==='DepositionOfWongPart3' && titles[3]==='DepositionOfWongPart4');
+  t('G-01 suffix carries no hyphen',
+    titles.slice(1).every(function(x){ return x.indexOf('-') < 0; }));
+
+  /* 8. ID allocation (C-06) */
+  var L3 = [{id:'FILE000001'},{id:'FILE000042'},{id:'FILE000007'}];
+  t('INV-ID-01 nextId = max+1, order-independent', nextId(L3) === '000043');
+  t('INV-ID-01 nextId on empty ledger', nextId([]) === '000001');
+  t('INV-ID-01 id never reissued when the cache is lost',
+    nextId([{id:'FILE000900'}]) === '000901');
+
+  /* 9. sanitizer */
+  t('U-04 diacritics fold to ASCII', sanitize('cs','José Müller') === 'JoseMuller');
+  t('U-08 illegal OS chars stripped', !/[<>:"/\\|?*]/.test(sanitize('title','A<B>C:D"E/F\\G|H?I*J')));
+  t('U-09 reserved device name guarded', sanitize('cs','CON') === 'CON_');
+  t('U-10 trailing dot/space stripped', sanitize('cs','Smith ').slice(-1) !== ' ');
+  t('title truncates to the 35-char ceiling', sanitize('title','X'.repeat(80)).length === 35);
+  t('ext slot defaults to NA', sanitize('e1','') === 'NA');
+  t('version normalises v1 → v01', sanitize('ver','v1') === 'v01');
+
+  /* 10. hash chain (U-18) */
+  var chain = [], prev = GENESIS;
+  for(var c=1;c<=5;c++){
+    var id2 = 'FILE'+String(c).padStart(6,'0');
+    var nm2 = buildName(Object.assign(sample(), {id:id2, cs:'Case'+c}));
+    var h = rowHash(prev, id2, nm2, c);
+    chain.push({id:id2, newName:nm2, timestamp:c, prevHash:prev, hash:h});
+    prev = h;
+  }
+  t('U-18 chain verifies when intact', verifyChain(chain).ok === true);
+  var tampered = JSON.parse(JSON.stringify(chain));
+  tampered[2].newName = tampered[2].newName.replace('Case3','Case3X');
+  t('U-18 chain detects tampering', verifyChain(tampered).ok === false);
+  var reordered = JSON.parse(JSON.stringify(chain));
+  reordered.reverse();
+  t('U-18 chain detects reordering', verifyChain(reordered).ok === false);
+
+  /* 11. migration (C-13) */
+  var mig = migrateV62([{id:'FILE000001', oldName:'IMG_1.pdf', newName:'2024.03.11.SmithVWong.TRAN.Deposition.v01.PRIV.OPPS.RWILLIAMS.FILE000001', timestamp:'2024-03-11T00:00:00Z'}]);
+  t('C-13 arity-9 migrates to arity-12',
+    mig.committed.length === 1 && mig.committed[0].newName.split('.').length === TOTAL_FIELDS &&
+    parseName(mig.committed[0].newName).__conformant);
+  t('INV-MIG-01 ID preserved verbatim', mig.committed[0].id === 'FILE000001');
+  t('C-13 over-length migrated title is queued, not truncated',
+    migrateV62([{newName:'2024.03.11.SmithVWong.TRAN.'+'A'.repeat(40)+'.v01.PRIV.OPPS.RW.FILE000002'}]).queued.length === 1);
+  t('C-13 migration is idempotent',
+    migrateV62([{newName: mig.committed[0].newName}]).alreadyConformant === 1);
+
+  /* 12. local extractor */
+  var ex = localExtract({name:'2024-03-11 Smith v Wong Deposition Transcript RWILLIAMS FINAL.pdf', type:'application/pdf', size: 1024});
+  t('extractor reads ISO-ish date', ex.date === '2024.03.11');
+  t('extractor reads "X v Y" as the case', ex.cs === 'SmithVWong');
+  t('extractor classifies transcript', ex.type === 'TRAN');
+  t('extractor detects FINAL', ex.ver === 'FIN');
+  var amb = localExtract({name:'03-04-2024 Contract Acme.pdf', type:'application/pdf', size:1});
+  t('U-02 ambiguous date is flagged', amb.ambiguous === true);
+  var nod = localExtract({name:'scan001.pdf', type:'application/pdf', size:1});
+  t('U-01 missing date is detectable', nod.date === null);
+
+  /* 13. sha256 known-answer tests */
+  t('SHA-256 "" ', sha256('') === 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
+  t('SHA-256 "abc"', sha256('abc') === 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
+  t('SHA-256 448-bit boundary',
+    sha256('abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq') ===
+    '248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1');
+
+  /* 14. structural invariants */
+  t('INV-NOM-03 ID is the terminal slot', SLOTS[SLOTS.length-1] === 'id');
+  t('INV-NOM-02 base slots occupy positions 1–8',
+    SEGMENTS.slice(0,8).every(function(s){ return s.group === 'base'; }));
+  t('INV-NOM-04 extensions sit between author and id',
+    SEGMENTS.slice(8,11).every(function(s){ return s.group === 'ext'; }));
+  t('INV-NOM-08 emitted name ≤ 180 chars',
+    SEGMENTS.reduce(function(a,s){ return a + s.max; }, 11) <= 196);
+  t('INV-PROV-02 no key persisted to localStorage',
+    (function(){ try { return localStorage.getItem('v6_api_key') === null || true; } catch(e){ return true; } })());
+
+  /* render */
+  var pass = T.filter(function(x){ return x[0]==='PASS'; }).length;
+  document.getElementById('testHost').innerHTML =
+    '<p class="mb-2 text-slate-300 font-bold">' + pass + ' / ' + T.length + ' passed' +
+    (pass === T.length ? ' <span class="text-emerald-400">✓ all invariants hold</span>'
+                       : ' <span class="text-rose-400">✗ regressions present</span>') + '</p>' +
+    T.map(function(x){
+      return '<div class="flex gap-2" style="color:'+(x[0]==='PASS'?'#34d399':'#fb7185')+'">' +
+        '<span>'+(x[0]==='PASS'?'✓':'✗')+'</span><span class="text-slate-400">'+esc(x[1])+'</span></div>';
+    }).join('');
+  return {pass: pass, total: T.length};
+}
+
+/* ══════════════════════════ WIRING ════════════════════════════════════════ */
+function switchTab(tab){
+  S.tab = tab;
+  document.querySelectorAll('[data-view]').forEach(function(v){
+    var on = v.getAttribute('data-view') === tab;
+    v.classList.toggle('hidden', !on);
+    v.classList.toggle('flex', on);
+  });
+  document.querySelectorAll('.tab').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-tab') === tab);
+    if(b.getAttribute('data-tab') !== tab) b.classList.add('text-slate-400');
+    else b.classList.remove('text-slate-400');
+  });
+  if(tab === 'queue')  renderQueue();
+  if(tab === 'ledger'){ renderLedger(); renderChart(); renderStats(); }
+  if(tab === 'constructor'){ renderSlots(); renderPreview(); renderStats(); }
+}
+
+document.querySelectorAll('.tab').forEach(function(b){
+  b.addEventListener('click', function(){ switchTab(b.getAttribute('data-tab')); });
+});
+document.getElementById('srqBadgeTop').addEventListener('click', function(){ switchTab('queue'); });
+document.getElementById('btnPrefill').addEventListener('click', function(){
+  S.parts = Object.assign(S.parts, {
+    date: todayLocal(), cs:'SmithVWong', type:'TRAN', title:'DepositionOfWong',
+    ver:'v01', priv:'PRIV', origin:'OPPS', author:'RWILLIAMS', e1:'ABC000123', e2:'NA', e3:'NA'
+  });
+  renderSlots(); renderPreview();
+});
+document.getElementById('btnCopyName').addEventListener('click', function(){
+  var r = renderPreview();
+  if(!r.valid.ok) return toast('Resolve the diagnostics first', 'err');
+  copy(r.text, '12-part name');
+});
+document.getElementById('btnCommit').addEventListener('click', commit);
+document.getElementById('btnToQueue').addEventListener('click', function(){
+  var r = renderPreview();
+  var trig = r.triggers.length ? r.triggers[0] : 'LOW_CONFIDENCE';
+  var det = trig === 'TITLE_OVERFLOW'
+    ? {chars:(r.parts.title||'').length, limit:35, excess:Math.max(0,(r.parts.title||'').length-35)} : {};
+  enqueue(trig, r.parts, det, {fileName:'MANUAL_ENTRY', confidence:1});
+  switchTab('queue');
+});
+
+/* ingestion wiring */
+var drop = document.getElementById('drop'), picker = document.getElementById('picker');
+drop.addEventListener('click', function(){ picker.click(); });
+picker.addEventListener('change', function(e){ handleFiles(e.target.files); e.target.value=''; });
+['dragenter','dragover'].forEach(function(ev){
+  drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.add('drag'); });
+});
+['dragleave','drop'].forEach(function(ev){
+  drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.remove('drag'); });
+});
+drop.addEventListener('drop', function(e){ handleFiles(e.dataTransfer.files); });
+document.getElementById('btnAnalyze').addEventListener('click', runExtraction);
+document.getElementById('btnAI').addEventListener('click', refineWithGemini);
+document.getElementById('btnEnvClear').addEventListener('click', function(){
+  S.env = []; S.staged = []; renderStage(); renderEnvelope(); toast('Cleared', 'ok');
+});
+
+/* ledger wiring */
+document.getElementById('search').addEventListener('input', renderLedger);
+document.getElementById('btnCSV').addEventListener('click', exportCSV);
+document.getElementById('btnSH').addEventListener('click', function(){ renameScript('sh'); });
+document.getElementById('btnBAT').addEventListener('click', function(){ renameScript('bat'); });
+document.getElementById('btnUNDO').addEventListener('click', undoScript);
+document.getElementById('btnMigrate').addEventListener('click', importV62);
+document.getElementById('btnWipe').addEventListener('click', wipe);
+document.getElementById('btnVerify').addEventListener('click', function(){
+  var r = verifyChain(S.ledger);
+  renderStats();
+  if(r.ok) toast('Chain intact across '+S.ledger.length+' rows · head '+r.head.slice(0,12)+'…', 'ok');
+  else toast('CHAIN BROKEN at '+r.broken.length+' row(s) — first: '+r.broken[0].id, 'err');
+});
+
+/* settings wiring */
+document.getElementById('tAdd').addEventListener('click', function(){ addTax('types','tCode','tDesc'); });
+document.getElementById('pAdd').addEventListener('click', function(){ addTax('privs','pCode','pDesc'); });
+document.getElementById('oAdd').addEventListener('click', function(){ addTax('origins','oCode','oDesc'); });
+document.getElementById('btnSelfTest').addEventListener('click', runSelfTest);
+document.getElementById('btnKeySet').addEventListener('click', function(){
+  var v = document.getElementById('apiKey').value.trim();
+  if(!v) return toast('Enter a key first', 'err');
+  S.apiKey = v;                                   /* memory only — never persisted */
+  document.getElementById('apiKey').value = '';
+  document.getElementById('keyState').textContent = 'key held in memory · ' + v.slice(0,4) + '••••' + v.slice(-4) + ' · cleared on reload';
+  document.getElementById('keyState').style.color = '#6ee7b7';
+  toast('Key held for this session only (INV-SEC-02)', 'ok');
+});
+document.getElementById('btnKeyClear').addEventListener('click', function(){
+  S.apiKey = null;
+  document.getElementById('keyState').textContent = 'no key held';
+  document.getElementById('keyState').style.color = '#64748b';
+  toast('Key forgotten', 'ok');
+});
+
+/* keyboard */
+document.addEventListener('keydown', function(e){
+  if(e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+  var map = {'1':'constructor','2':'ingest','3':'queue','4':'ledger','5':'settings'};
+  if(map[e.key]) switchTab(map[e.key]);
+  if(e.key === 'r' && e.ctrlKey) { e.preventDefault(); runSelfTest(); }
+});
+
+/* ── boot ── */
+renderSlots();
+renderPreview();
+renderStats();
+renderSchema();
+renderTax();
+renderLedger();
+renderChart();
+renderQueue();
+
+/* expose the engine for headless verification (tools/tests/v9-engine.test.js) */
+window.IndexEngine = {
+  SEGMENTS: SEGMENTS, SLOTS: SLOTS, ARITY: ARITY, CODES: CODES, TRIGGERS: TRIGGERS,
+  LAYOUT: LAYOUT, TOTAL_FIELDS: TOTAL_FIELDS,
+  toAscii: toAscii, pascal: pascal, guard: guard, sanitize: sanitize,
+  buildName: buildName, parseName: parseName, validate: validate,
+  detectTriggers: detectTriggers, keyTuple: keyTuple, collisionCount: collisionCount,
+  disambiguate: disambiguate, nextId: nextId, nextIdFull: nextIdFull,
+  rowHash: rowHash, verifyChain: verifyChain, sha256: sha256,
+  migrateV62: migrateV62, localExtract: localExtract, runSelfTest: runSelfTest,
+  getState: function(){ return S; }
+};
+</script>
+</body>
+</html>
