@@ -16,7 +16,7 @@
 | # | Session | Primary deliverable | Runtime artifact | Status |
 |---|---|---|---|---|
 | **1** | **Audit + Terminal Command Engine** | `docs/SPEC-AUDIT.md`, `docs/SESSION-PLAN.md` | `tools/terminal-engine.html` | ✅ **this session** |
-| **2** | **v9.1.0.1 Core Engine** | Superseding SPA per PDF ground truth | `v9/index.html` | ⏳ next |
+| **2** | **v9.1.0.1 Core Engine** | Superseding SPA per policy ground truth | `v9/index.html` | ✅ **complete** |
 | **3** | **SPA Deployment Guide** | Step-by-step SPA build → ship | `docs/GUIDE-SPA.md` | ⏳ |
 | **4** | **Cryptography + Ledger Hardening** | AES-GCM vault, hash-chained ledger, IndexedDB | `v9/index.html` (extended) | ⏳ |
 | **5** | **Android Application** | Capacitor + native Kotlin/Compose track | `docs/GUIDE-ANDROID.md` + project | ⏳ |
@@ -58,20 +58,28 @@
 
 ---
 
-## Session 2 — v9.1.0.1 Core Engine
+## Session 2 — v9.1.0.1 Core Engine ✅ COMPLETE
 
-**Goal.** Replace V6.2 with a spec-conformant engine implementing the audit's **provisional resolutions**.
+**Goal.** Replace V6.2 with a spec-conformant engine implementing the operator confirmations **G-01…G-03**.
 
-**Scope**
+**Delivered**
 
-1. **Single serializer** — `buildName(parts)` / `parseName(name)` pair (`INV-NOM-06`); no inline concatenation anywhere.
-2. **Validation layer** — `validateSegment()` enforcing every §1.2 constraint, incl. `INV-NOM-05` (`TITLE ≤ 35`).
-3. **Sanitizer** — U-04 Unicode folding, U-08 illegal chars, U-09 reserved device names, U-10 trailing dots/spaces.
-4. **Duplicate engine** — tuple-exact comparison (`INV-DUP-02`) + unbounded re-tested ordinal (`INV-DUP-01`).
-5. **Bidirectional rename scripts** — `.sh`/`.bat` emit **and** an inverse `.sh`/`.bat` to undo.
-6. **Diagnostics panel** — surfaces live violations with the offending segment highlighted.
+| # | Item | Invariant |
+|---|---|---|
+| 1 | Single serializer `buildName` / `parseName`; no inline concatenation anywhere | `INV-NOM-06` |
+| 2 | Syntax-driven validator over the 12-slot contract | `INV-NOM-05`, `INV-NOM-07` |
+| 3 | Sanitizer: Unicode fold, illegal chars, reserved names, trailing dots | U-04, U-08, U-09, U-10 |
+| 4 | Tuple-exact dedup + unbounded re-tested ordinal | `INV-DUP-01/02` |
+| 5 | Smart Review Queue with 9 triggers and attributed adjudication | `INV-SRQ-01/02/03` |
+| 6 | Hash-chained append-only ledger, pure-JS SHA-256 | U-18 |
+| 7 | `max+1` ID allocation asserted unique at write time | `INV-ID-01` |
+| 8 | V6.2 → v9.1.0.1 migration, additive and idempotent | `INV-MIG-01` |
+| 9 | Zero-credential local ingestion; AI is optional, not load-bearing | closes C-06 |
+| 10 | CSV (UTF-8 BOM), forward and **inverse** rename scripts | U-25 |
 
-**Acceptance gate.** Property-tests: 10 000 generated names round-trip `parse(build(x)) === x`; no name exceeds 180 chars; no output contains a character from the OS-illegal set.
+**Acceptance gate — all met:** 10 000-name round-trip property test passes with zero divergence; no emitted name exceeds 180 characters; no output contains an OS-illegal character; **99/99 headless assertions green**.
+
+**Defect yield.** The round-trip property test caught the **parts-vs-fields** defect (12 parts / 14 fields) on its first run — precisely the class of error `INV-NOM-10` was written to prevent. Five further defects surfaced and were fixed. See the commit body for the enumeration.
 
 ---
 
@@ -135,8 +143,8 @@
 
 | Session | Started | Completed | Artifact(s) | Gate |
 |---|---|---|---|---|
-| 1 | 2026-10-02 | 2026-10-02 | `docs/SPEC-AUDIT.md`, `docs/SESSION-PLAN.md`, `tools/terminal-engine.html` | ✅ pass |
-| 2 | — | — | — | — |
+| 1 | 2026-10-02 | 2026-10-02 | `docs/SPEC-AUDIT.md` rev1, `docs/SESSION-PLAN.md`, `tools/terminal-engine.html` | ✅ 20/20 |
+| 2 | 2026-10-02 | 2026-10-02 | `v9/index.html`, `tools/tests/v9-engine.test.js`, `docs/SPEC-AUDIT.md` rev2 | ✅ 99/99 |
 | 3 | — | — | — | — |
 | 4 | — | — | — | — |
 | 5 | — | — | — | — |
