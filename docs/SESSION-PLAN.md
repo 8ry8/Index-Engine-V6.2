@@ -17,8 +17,8 @@
 |---|---|---|---|---|
 | **1** | **Audit + Terminal Command Engine** | `docs/SPEC-AUDIT.md`, `docs/SESSION-PLAN.md` | `tools/terminal-engine.html` | ✅ **this session** |
 | **2** | **v9.1.0.1 Core Engine** | Superseding SPA per policy ground truth | `v9/index.html` | ✅ **complete** |
-| **3** | **SPA Deployment Guide** | Step-by-step SPA build → ship | `docs/GUIDE-SPA.md` | ⏳ |
-| **4** | **Cryptography + Ledger Hardening** | AES-GCM vault, hash-chained ledger, IndexedDB | `v9/index.html` (extended) | ⏳ |
+| **3** | **SPA Deployment Guide** | Step-by-step SPA build → ship | `docs/GUIDE-SPA.md`, Pages workflow, PWA shell | ✅ **complete** |
+| **4** | **Cryptography + Ledger Hardening** | AES-GCM vault, hash-chained ledger, IndexedDB | `v9/index.html` (extended) | ⏳ **in progress** |
 | **5** | **Android Application** | Capacitor + native Kotlin/Compose track | `docs/GUIDE-ANDROID.md` + project | ⏳ |
 | **6** | **iOS Application** | Capacitor + native SwiftUI track | `docs/GUIDE-IOS.md` + project | ⏳ |
 | **7** | **CI/CD, Pages & Release** | Real Pages workflow, SRI pinning, release checklist | `.github/workflows/pages.yml` | ⏳ |
@@ -83,23 +83,23 @@
 
 ---
 
-## Session 3 — SPA Deployment Guide
+## Session 3 — SPA Deployment Guide ✅ COMPLETE
 
-**Goal.** `docs/GUIDE-SPA.md` — a numbered, copy-pasteable path from empty directory to a live HTTPS URL.
+**Goal.** Deliver `docs/GUIDE-SPA.md`, a beginner-facing route from checkout to a live HTTPS Pages deployment.
 
-**Scope.** Framework selection matrix (vanilla / Vite+React+TS / Next static export), Tailwind v4 wiring, IndexedDB persistence, PWA manifest + service worker, GitHub Pages deploy, custom domain + TLS, Lighthouse budget, CSP header set.
+**Delivered.** Canonical one-file vanilla SPA guidance; framework matrix; inline Tailwind v4 maintenance pipeline; IndexedDB/security guidance; optional PWA sidecars; `v9/` Pages workflow; HTTPS/custom-domain steps; CSP and Lighthouse budgets. Added a Node-only static server and removed the broken Nuxt workflow.
 
-**Acceptance gate.** A reader with only Node 20 installed reaches a live Pages URL by following the document top-to-bottom with no external lookup.
+**Acceptance gate.** `npm run build:spa`, `npm test`, and syntax checks pass. The HTML has no runtime Tailwind CDN/script dependency. See `docs/SESSION-3-REPORT.md`.
 
 ---
 
-## Session 4 — Cryptography + Ledger Hardening
+## Session 4 — Cryptography + Ledger Hardening ⏳ IN PROGRESS
 
-**Goal.** Close **C-04**, **C-05**, **C-07**, **U-14…U-18**.
+**Goal.** Close **C-04**, **C-05**, **C-07**, and **U-14…U-19** while reconciling the engine with the user-pasted V9.1.0.1 master text.
 
-**Scope.** WebCrypto API-key vault (in-memory + expiring), AES-256-GCM ledger backup with PBKDF2-SHA256 key derivation, SHA-256 hash-chained append-only audit ledger, IndexedDB (Dexie) migration with `localStorage` shim, `BroadcastChannel` write lock, `max+1` ID allocation with uniqueness assertion.
+**Scope.** AES-256-GCM backup with PBKDF2-SHA256 ≥600,000 iterations and versioned KDF/key metadata; expiring memory-only AI key; IndexedDB with additive `localStorage` migration; BroadcastChannel/Web Locks coordination plus atomic IndexedDB writes; complete-record hash chaining; integrity metadata (file SHA-256, timestamp, size, MIME/source); max+1 ID allocation and write-time uniqueness. Reconcile the policy order, TYPE2/PRIV2/ORIGIN2, taxonomy, version examples, filename extension handling, and ID examples from the pasted master.
 
-**Acceptance gate.** A tampered ledger row fails chain verification and is reported by ID; a lost `v6ArchiveNum` never re-issues an ID.
+**Acceptance gate.** Tampering with a ledger row or audit event is detected; an altered encrypted backup is rejected before restore; a lost local counter never reissues an ID; concurrent IndexedDB append transactions produce unique IDs and a valid chain; migration is additive and does not rewrite an existing ID.
 
 ---
 
@@ -133,7 +133,7 @@
 
 **Goal.** Close **C-11**; make the repository self-verifying.
 
-**Scope.** Delete the Nuxt workflow; add a static `pages.yml` deploying the repo root; add SRI hashes to every CDN `<script>`/`<link>`; add a `lint.yml` running HTML validation + a headless smoke test; add a `release.yml` producing a versioned zip + checksums; add `CODEOWNERS`, `SECURITY.md`, `CONTRIBUTING.md`.
+**Scope.** Harden the Session 3 Pages workflow; add an independent `lint.yml` running HTML validation + headless smoke tests; pin third-party actions; remove remaining inert workflows; add a `release.yml` producing a versioned zip + checksums; add `CODEOWNERS`, `SECURITY.md`, and `CONTRIBUTING.md`. The shipped SPA no longer needs CDN SRI because Tailwind is inlined.
 
 **Acceptance gate.** Push to `main` yields a green Pages deployment reachable at `https://<user>.github.io/Index-Engine-V6.2/`.
 
@@ -145,8 +145,8 @@
 |---|---|---|---|---|
 | 1 | 2026-10-02 | 2026-10-02 | `docs/SPEC-AUDIT.md` rev1, `docs/SESSION-PLAN.md`, `tools/terminal-engine.html` | ✅ 20/20 |
 | 2 | 2026-10-02 | 2026-10-02 | `v9/index.html`, `tools/tests/v9-engine.test.js`, `docs/SPEC-AUDIT.md` rev2 | ✅ 99/99 |
-| 3 | — | — | — | — |
-| 4 | — | — | — | — |
+| 3 | 2026-10-02 | 2026-10-02 | `docs/GUIDE-SPA.md`, inline CSS/PWA sidecars, Pages workflow, `docs/SESSION-3-REPORT.md` | ✅ 122/122 |
+| 4 | 2026-10-02 | — | `v9/index.html` crypto/storage/spec reconciliation | ⏳ |
 | 5 | — | — | — | — |
 | 6 | — | — | — | — |
 | 7 | — | — | — | — |

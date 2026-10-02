@@ -19,7 +19,12 @@ const html = fs.readFileSync(target, 'utf8');
 
 const errors = [];
 const vc = new VirtualConsole();
-vc.on('jsdomError', e => errors.push('jsdomError: ' + e.message));
+vc.on('jsdomError', e => {
+  // jsdom's CSSOM does not parse Tailwind v4's modern @supports/@layer rules;
+  // those rules are browser-facing presentation, not application runtime errors.
+  if (e.type === 'css parsing') return;
+  errors.push('jsdomError: ' + e.message);
+});
 vc.on('error', e => errors.push('console.error: ' + e));
 
 const dom = new JSDOM(html, {
@@ -36,7 +41,10 @@ const ok = (c, m) => T.push([c ? 'PASS' : 'FAIL', m]);
 const eq = (a, b, m) => T.push([a === b ? 'PASS' : 'FAIL', `${m}  (got ${JSON.stringify(a)}, want ${JSON.stringify(b)})`]);
 const sec = s => T.push(['SEC', s]);
 
-/* ── boot ─────────────────────────────────────────────────────────────── */
+/* ── boot / single-file deployment contract ───────────────────────────── */
+ok(!/cdn\.tailwindcss\.com|<script[^>]+src=/i.test(html), 'core SPA has no runtime CDN/script dependency');
+ok(/<style id="tailwind-generated">[\s\S]{1000,}<\/style>/.test(html), 'Tailwind CSS is inlined into the runnable HTML');
+ok(/<link rel="manifest" href="\.\/manifest\.webmanifest">/.test(html), 'optional PWA manifest uses a same-origin relative URL');
 ok(!!E, 'engine exports window.IndexEngine');
 ok(errors.length === 0, 'boots with zero runtime errors' + (errors.length ? ' → ' + errors.join(' | ') : ''));
 
