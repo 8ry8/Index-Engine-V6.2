@@ -22,7 +22,7 @@
 | **3** | **SPA Deployment Guide** | Step-by-step SPA build → ship, report | `docs/GUIDE-SPA.md`, Pages workflow, PWA shell | ✅ **delivered; history recovery noted below** |
 | **4** | **Cryptography + Ledger Hardening** | AES-GCM backup, hash-chained ledger, IndexedDB, report | `v9/index.html` (extended) | ✅ **complete** |
 | **5** | **Android Application** | Capacitor wrapper (Kotlin/Compose alternative documented) | `docs/GUIDE-ANDROID.md`, `mobile/capacitor/android/` | ✅ artifact delivered; native build gate queued for Session 7 CI |
-| **6** | **iOS Application** | Capacitor SPM wrapper (SwiftUI alternative documented) | `docs/GUIDE-IOS.md`, `mobile/capacitor/ios/` | ⏳ pending |
+| **6** | **iOS Application** | Capacitor SPM wrapper (SwiftUI alternative documented) | `docs/GUIDE-IOS.md`, `mobile/capacitor/ios/` | ✅ artifact delivered; Xcode build gate queued for Session 7 CI |
 | **7** | **CI/CD, Pages & Release** | SHA-pinned CI/Pages/mobile builds, checksum + provenance release, governance | `.github/workflows/lint.yml`, `pages.yml`, `release.yml` | ⏳ pending |
 
 ---
@@ -117,11 +117,15 @@
 
 ---
 
-## Session 6 — iOS Application
+## Session 6 — iOS Application ✅ ARTIFACT DELIVERED · XCODE GATE PENDING CI
 
-**Goal.** Ship `docs/GUIDE-IOS.md` and a clean-clone Capacitor/SWIFT project around the canonical V9 SPA; document SwiftUI as an alternative.
+**Goal.** Ship a native iOS shell around the canonical V9 SPA, with a beginner guide and an explicit archive acceptance path.
 
-**Acceptance gate.** Xcode archive must succeed on macOS.
+**Tracks.** Track A (Capacitor 8.4.3 + Swift Package Manager) is implemented in `mobile/capacitor/ios/`. Track B (native SwiftUI) is documented as an alternative architecture, including the iOS 15 Core Data vs. iOS 17 SwiftData distinction, security-scoped file URLs, key storage, and parity tests.
+
+**Delivered.** iOS Xcode project with bundle ID `org.efnai.indexengine`, deployment target 15.0, version `9.1.0.1` / build `90101`, branded icon/launch art, sync/build/archive scripts, iOS static verification, and `docs/GUIDE-IOS.md`. The project pins native Capacitor 8.4.3 via SPM and has no CocoaPods requirement.
+
+**Acceptance gate.** On macOS with Xcode 26+, `cd mobile/capacitor && npm ci && npm run ios:archive:unsigned` must produce `ios/App/build/Index-Engine.xcarchive`; CI also runs `npm run ios:simulator`. The Linux workspace passed `npm run ios:sync`, `npm test`, and `npm audit --audit-level=moderate` (zero advisories), but cannot run Xcode. The unsigned archive is compile verification only, not a signed IPA. See `docs/SESSION-6-REPORT.md`.
 
 ---
 
@@ -142,5 +146,5 @@
 | 3 | 2026-10-02 | 2026-10-02 | `docs/GUIDE-SPA.md`, inline CSS/PWA sidecars, Pages workflow, `docs/SESSION-3-REPORT.md` | ✅ historical run recorded; current suite re-run in Session 4 |
 | 4 | 2026-10-02 | 2026-10-02 | `v9/index.html`, corrected audit/plan, `docs/SESSION-4-REPORT.md` | ✅ 21/21 Terminal + 24/24 V9; both builds and syntax checks passed |
 | 5 | 2026-10-02 | 2026-10-02 | `mobile/capacitor/`, `docs/GUIDE-ANDROID.md`, `docs/SESSION-5-REPORT.md` | ✅ config/audit tests; native APK build pending Session 7 CI |
-| 6 | — | — | — | — |
+| 6 | 2026-10-02 | 2026-10-02 | `mobile/capacitor/ios/`, `docs/GUIDE-IOS.md`, `docs/SESSION-6-REPORT.md` | ✅ config/sync/audit tests; Xcode simulator/archive pending Session 7 CI |
 | 7 | — | — | — | — |
