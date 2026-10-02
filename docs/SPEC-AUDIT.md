@@ -1,513 +1,182 @@
-# SPEC AUDIT — v9.1.0.1 (EFNAI Draft) vs. Implementation V6.2
+# SPEC AUDIT — EFNAI V9.1.0.1 Master vs. V6.2
 
-**Document ID:** `IDX-AUDIT-v9.1.0.1-001`
-**Target repo:** `8ry8/Index-Engine-V6.2` @ `a8814bb`
-**Branch:** `arena/01a0fc76-index-engine-v6-2`
-**Audit date:** 2026-10-02 · **Revision 2** (operator confirmations folded in)
-**Status:** ⚠️ **CONDITIONAL — 14 contradictions and 25 undefined properties identified · 3 items promoted to confirmed ground truth**
+**Document ID:** `IDX-AUDIT-v9.1.0.1-001`<br>
+**Target repo:** `8ry8/Index-Engine-V6.2`<br>
+**Branch:** `arena/01a0fc76-index-engine-v6-2`<br>
+**Audit date:** 2026-10-02 · **Revision 3 — corrected to the user-supplied master text**
 
-**Supersession notice:** the policy is a **12-part** nomenclature. `README.md` is **descriptive of V6.2** and is **not normative** where the two conflict (**`INV-NOM-09`**).
-
----
-
-## 0.1 Operator Confirmations — Revision 2 (2026-10-02)
-
-Three items were **promoted from `[R]` to `[G]`** by direct operator statement. These **override** the README and V6.2 wherever they conflict.
-
-| # | Confirmed ground truth | Supersedes | Consequences |
-|---|---|---|---|
-| **G-01** | Duplicate disambiguation suffix is **`Part2`** — **no hyphen** | `README.md` "`-Part2`" | Resolves **C-01**. `TITLE` stays strictly `[A-Za-z0-9]+`. Ordinal is unbounded (`Part2`, `Part3`, …). |
-| **G-02** | The v9.1.0.1 policy is a **12-Part Nomenclature**, not the 9-part form | `README.md` "foundational 9-part formula" | Resolves **C-13**. Three previously-optional extension slots become **standing, mandatory-order** parts. **The single most impactful change in this revision.** |
-| **G-03** | `TITLE > 35` characters ⇒ *"the file is uncertain"* ⇒ the record is routed to the **Smart Review Queue** | V6.2 silent acceptance | Resolves **C-02** and **U-22**. **Truncation is now prohibited as an automatic behaviour** — see §2.5. |
-
-> **Invariant `INV-SRQ-01` — Uncertainty is never silently resolved.**
-> Any record whose metadata cannot be determined with confidence is **quarantined, not guessed**. The engine must never fabricate a conformant-looking name for a document it could not read. Emitting a plausible-but-wrong filename into a legal archive is a **provenance defect**, not a UI inconvenience.
-
-**Invariant `INV-NOM-07` — Twelve slots, fixed order.** The v9.1.0.1 designation is a **12-part, period-delimited string of fixed arity**. Slots 1–8 and 12 are immutable; slots 9–11 are the three standing extension parts and are **order-significant**.
-
-### 1.1.1 Parts vs. fields — the delimiter subtlety `[G]`
-
-`DATE` is written `YYYY.MM.DD`, so **it embeds the delimiter twice**. A *part* is therefore **not** a *dot-field*:
-
-```
- 2024 . 03 . 11 . SmithVWong . TRAN . DepositionOfWong . v01 . PRIV . OPPS . RWILLIAMS . B123 . NA . NA . FILE000001
-└─ 3 fields ─┘    └─────── 7 fields ──────────────┘                  └── 3 ──┘   └── ID ──┘
-└──────────────────────── 14 dot-fields ─────────────────────────────────────────────────────┘
-```
-
-| Name | Semantic parts | Dot-fields | Formula |
-|---|---|---|---|
-| V6.2 (as shipped) | **9** | **11** | 3 (date) + 7 + 1 (ID) |
-| **v9.1.0.1** | **12** | **14** | 3 (date) + 7 + 3 (ext) + 1 (ID) |
-
-> ✅ **This resolves the arithmetic inconsistency in `C-13`.** The README's quoted "9-part" string contains **nine semantic parts but eleven dot-separated tokens** — it was never internally inconsistent; it was **conflating parts with fields**. The v9.1.0.1 addition of three standing extension slots moves the count from 9→12 parts and 11→14 fields.
-
-**Invariant `INV-NOM-10` — Parts ≠ fields.** *All arity assertions in code compare against the **semantic part count** (12); all string parsing and migration compare against the **field count** (14). Conflating the two is the highest-probability defect in any reimplementation.*
-
-> **Implemented as:** a derived `LAYOUT` table (`{key, start, width}`) computed once from `SEGMENTS`, with `width = 3` for `DATE` and `1` for every other slot. `parseName()`, `validate()`, `migrateV62()` and the UI all read the field mapping from that single source — **no call site hard-codes a field index**. This bug was in fact caught by the round-trip property test during Session 2 development, exactly as `INV-PROV-02` predicts.
-
-### 12-Part decomposition `[R]`
-
-V6.2's "9-part" string is **8 base parts + `ID`**. The README's own text names three intended extension use cases — *"Bates Stamped Numbers, Judicial Venues, or Subpoena Issuers"*. The coherent reading of **G-02** is that v9.1.0.1 promotes exactly those three from optional to standing:
-
-```
- 01    02    03     04     05    06     07      08      09     10     11     12
-DATE  CASE  TYPE  TITLE   VER   PRIV  ORIGIN  AUTHOR  E1     E2     E3     ID
-└──────────── 8 base parts ───────────────┘  └── 3 standing extensions ──┘  └ID┘
-```
-
-| Slot | Provisional name | README-sourced intent | Confidence |
-|---|---|---|---|
-| 09 | `BATES` | Bates stamped number | `[R]` — pending PDF |
-| 10 | `VENUE` | Judicial venue | `[R]` — pending PDF |
-| 11 | `SUBP` | Subpoena issuer | `[R]` — pending PDF |
-
-**Status: the three slot *identities* are `[R]`; the *arity of 12* is `[G]`.** The engine is therefore built **schema-driven** — the slot table is **data, not code**. Reconciling the PDF is a one-object edit to `SEGMENTS`, with no change to the serializer, validator, sanitizer, dedup engine or review queue.
-
-> **⚠️ Reconciliation request.** When the PDF lands, confirm only: *(a)* the three slot names, *(b)* their order, *(c)* their allowed charsets. Everything else in v9.1.0.1 is already settled.
-
----
-
-## 0. Provenance & Source-of-Truth Notice
-
-> **⚠️ BLOCKING PROVENANCE GAP**
+> **Source authority:** The user-supplied Version 9.1.0.1 text is the normative master and supersedes V6.2, the repository README, and earlier audit reconstructions wherever they conflict. The pasted material is readable in the conversation. The body of section 13 (the Addendum) was not pasted or accessed, and the PDF binary is not in the workspace; this audit does **not** claim review of either unseen item or all thirteen section bodies.
 >
-> The attachment `v9.1.0.1 EFNAI draft.pdf` was supplied **in the request conversation only**. It is **not present** in the repository working tree, any Git blob (`git log --all --diff-filter=A`), any GitHub release, issue, or attachment.
->
-> Command of record:
-> ```bash
-> find /home/user/Index-Engine-V6.2 -iname "*.pdf" -not -path "./.git/*"
-> # → (no output)
-> git log --all --pretty=format: --name-only --diff-filter=A | sort -u
-> # → .github/ISSUE_TEMPLATE/feature_request.md, .github/workflows/blank.yml,
-> #   .github/workflows/nuxtjs.yml, Index Engine V6.2  Code, LICENSE, README.md, index.html
-> ```
+> This revision corrects the earlier provisional interpretation that slots 9–11 were `E1/E2/E3` (Bates/Venue/Subpoena). Those names and use cases came from the older V6.2 README and are **not** the V9.1.0.1 master slot identities.
 
-**Consequence:** the v9.1.0.1 normative text could not be parsed by tooling. Every v9.1.0.1 statement below is marked with one of:
+## 1. Normative nomenclature contract
 
-| Marker | Meaning | User action required |
+### 1.1 Twelve semantic parts, fourteen period-delimited fields
+
+The canonical semantic order is:
+
+`DATE, CASE, TYPE, TYPE2, TITLE, VER, PRIV, PRIV2, ORIGIN, ORIGIN2, AUTHOR, ID`
+
+The serial form is:
+
+```text
+[YYYY.MM.DD].[CASE].[TYPE].[TYPE2].[TITLE].[VER].[PRIV].[PRIV2].[ORIGIN].[ORIGIN2].[AUTHOR].[ID][.extension]
+```
+
+`DATE` contains two periods, so twelve semantic parts occupy fourteen period-delimited fields. A file extension such as `.pdf`, `.docx`, or `.tar.gz` follows the ID and is file metadata, not a thirteenth nomenclature part.
+
+| # | Part | Conformance notes |
+|---:|---|---|
+| 1 | `DATE` | `YYYY.MM.DD`; use the document/reference date, not file modification time. |
+| 2 | `CASE` | Mixed-case examples are normative evidence; do not force the entire name to uppercase. |
+| 3 | `TYPE` | Primary controlled-taxonomy code. |
+| 4 | `TYPE2` | Secondary subtype or `NA`. |
+| 5 | `TITLE` | Human-readable mixed-case title. More than 35 characters routes to Smart Review Queue; never silently truncate. |
+| 6 | `VER` | Includes `v01`-style labels and the full values `FINAL`, `DRAFT`, `REV`, and `EXE`; do not abbreviate these to `FIN` or `DRAF`. |
+| 7 | `PRIV` | Primary controlled-taxonomy code. |
+| 8 | `PRIV2` | Secondary sensitivity marker or `NA`. |
+| 9 | `ORIGIN` | Primary source-family code. |
+| 10 | `ORIGIN2` | Specific source or `NA`. |
+| 11 | `AUTHOR` | Mixed-case examples are valid; do not uppercase the complete value. |
+| 12 | `ID` | Terminal immutable archive identifier. Newly allocated IDs use eight numeric digits, e.g. `FILE00000001`; imported legacy IDs are preserved verbatim rather than renumbered. |
+
+**`NA` rule:** `NA` is permitted only in `TYPE2`, `PRIV2`, and `ORIGIN2`. It is not a general missing-value marker for primary fields.
+
+**Case and examples:** the master examples include mixed-case `CASE`, `TITLE`, and `AUTHOR`, eight-digit `FILE` IDs, and full version values. Historical V6.2 uppercase normalization, abbreviated versions, and its dynamic extension placement do not override those examples.
+
+### 1.2 Operator confirmations that remain in force
+
+| Decision | Normative treatment |
+|---|---|
+| Duplicate title suffix | `Part2`, `Part3`, … with **no hyphen**; re-test each candidate. |
+| `TITLE > 35` | Included in the Smart Review Queue workflow by operator confirmation; retain the full title and require human action. |
+| Policy shape | Twelve semantic parts, in the exact order above. |
+| Section 13 | Its body was not accessible; do not infer its content from the attachment manifest. |
+
+The Smart Review Queue is present in the pasted Version 9.1.0.1 material. That fact is distinct from whether a particular pasted subsection itself spells out the numeric `TITLE > 35` trigger; the trigger is additionally confirmed by the operator.
+
+### 1.3 Serialization invariants
+
+- **`INV-NOM-01` — delimiter:** period is the field delimiter; `DATE` is the sole semantic part that embeds it.
+- **`INV-NOM-02` — order:** all twelve slots appear in the fixed sequence above.
+- **`INV-NOM-03` — immutable terminal ID:** IDs are not reused, removed, or rewritten during migration or restore. New allocations use max+1 with a persistent high-water mark and a write-time uniqueness check.
+- **`INV-NOM-04` — case:** preserve valid mixed-case values; do not uppercase `CASE`, `TITLE`, or `AUTHOR` wholesale.
+- **`INV-NOM-05` — title:** `TITLE` is at most 35 characters for automatic commit; overflow remains intact in review.
+- **`INV-NOM-06` — serializer:** one builder/parser pair owns the filename layout; extension parsing is separate from the twelve parts.
+- **`INV-NOM-07` — semantic arity:** exactly twelve parts, represented by fourteen policy fields because `DATE` has width three.
+- **`INV-NOM-08` — length:** generated filename budget is 180 characters; reject for review rather than clipping fields.
+- **`INV-NOM-09` — supersession:** the V9.1.0.1 master outranks README/V6.2 wording when they conflict.
+- **`INV-NOM-10` — parts vs. fields:** arity checks count semantic parts; parser checks count delimited fields.
+- **`INV-DUP-01` — collision suffix:** use `Part2`, no hyphen; re-test successive ordinals. If a suffix would violate `TITLE`/filename limits, preserve the title and queue it for review.
+- **`INV-DUP-02` — collision equality:** compare the complete non-ID part tuple, never substrings. Whether collision scope should be matter-specific remains U-12.
+- **`INV-ID-01` — allocation:** new ID is max(existing numeric suffix, persisted high-water)+1 and is asserted unique immediately before atomic persistence; never wrap or reuse.
+- **`INV-MIG-01` — migration:** additive, lossless, and ID-preserving; unclassifiable legacy segments remain review metadata rather than being guessed into secondary taxonomy fields.
+
+## 2. Security and persistence requirements
+
+### 2.1 Hash-chained append-only history
+
+Ledger rows and audit events are chained with SHA-256. A row hash covers the complete row except the self-referential `hash` and `prevHash` fields, with the previous hash included in the digest input. Current broken chains are preserved as evidence and block new audited appends; they are never silently re-hashed into apparent validity. Legacy hashless rows may be upgraded additively, retaining original fields and recording a migration event when the prior audit chain is valid.
+
+- Commit, queue mutation, queue resolution/discard, intake-hash recording, taxonomy changes, migration, and restore use atomic multi-key writes.
+- IndexedDB is authoritative. The one-time localStorage import is additive and verified; legacy values are not cleared as part of startup.
+- Cross-tab IndexedDB write transactions serialize the read/modify/write operation. Web Locks/BroadcastChannel are used where available; localStorage-only fallback uses a single write lock and replayable journal.
+- Queue exits carry `resolvedBy`/`resolvedAt`, and a discard is an attributed audit event. The browser-only build currently records the local actor as `operator`; it is not an identity or RBAC system.
+
+### 2.2 Encrypted backup and credential handling
+
+The browser backup is a local download/restore feature, not cloud sync. It uses AES-256-GCM, PBKDF2-SHA256 with 600,000 iterations, fresh salt and IV per export, and authenticated header metadata. Restore authenticates/decrypts first, verifies the ledger, audit chain, vault metadata, ID uniqueness, and sequence high-water marks, then asks for explicit replacement confirmation. A restore event is appended to the restored audit chain. The persistent ID high-water mark is not reduced by restore.
+
+Backup content includes ledger/queue/taxonomy/sequence/audit and intake metadata. It excludes the Gemini key and document bytes. The API key is held in memory for at most 30 minutes and is never written to localStorage or IndexedDB.
+
+- **`INV-SEC-01` — backup confidentiality/integrity:** require authenticated AES-256-GCM encryption before an exported backup leaves the browser.
+- **`INV-SEC-02` — credential lifecycle:** keep the Gemini credential in memory only, expire it, and exclude it from every persistent/backup payload.
+- **`INV-AI-01` — call-time credential access:** resolve the key through `getApiKey()` and surface missing/expired-key prompts rather than sending a silent empty-key request.
+- **`INV-AI-02` — model stability:** use a configurable GA model identifier by default; do not hard-code a dated preview alias.
+
+### 2.3 Intake integrity boundary
+
+Files are hashed locally at intake. The Integrity Vault stores source SHA-256, filename, size, MIME type, source metadata, timestamp, and a metadata digest; the SPA does not persist or upload document bytes. Verification of the metadata digest does not re-hash a later archived copy because the SPA has no copy of those bytes. A failed hash or missing vault link remains a review exception unless an operator explicitly overrides it.
+
+## 3. Historical V6.2 conflicts and resolution
+
+| Topic | Older V6.2/README behavior or wording | V9.1.0.1 treatment |
 |---|---|---|
-| `[G]` | **Ground truth** — stated in the request or verifiable in V6.2 source | None |
-| `[R]` | **Reconstructed** — inferred from V6.2 behaviour and README, awaiting PDF confirmation | **Confirm or correct** |
-| `[?]` | **Unknown** — cannot be inferred; blocks design | **Must supply** |
+| Part count | Older 9-part formula plus dynamically inserted extension values | Fixed 12-part order with `TYPE2`, `PRIV2`, and `ORIGIN2` standing in positions 4, 8, and 10. |
+| Secondary slots | No equivalent fixed secondary fields | `TYPE2`, `PRIV2`, and `ORIGIN2`; `NA` only in these fields. Do not relabel them Bates/Venue/Subpoena. |
+| Title overflow | Accept or silently clip long titles | Preserve full title and route `TITLE > 35` to human review. |
+| Duplicate naming | Prior descriptions used a hyphen and/or stopped at `Part2` | `Part2`, no hyphen; continue with a re-tested ordinal. |
+| Version labels | Shortened legacy values such as `FIN`/`DRAF` | Preserve master examples `FINAL`, `DRAFT`, `REV`, `EXE` and `v01` forms. |
+| Field case | Older paths uppercased values | Mixed-case `CASE`, `TITLE`, and `AUTHOR` examples remain valid. |
+| ID width | Some old examples use six digits | New IDs use eight digits; migration preserves each existing ID verbatim. Never wrap or reuse. |
+| File extension | Could be conflated with dynamic segments | Extension follows ID and is not one of the twelve parts. |
+| Persistence/security | Plain browser storage and plaintext key/backup risks | IndexedDB primary, additive localStorage migration, append-only chains, local encrypted backup, memory-only expiring AI key. |
+| Deployment | Nuxt workflow did not match the static SPA | GitHub Pages publishes the self-contained `v9/` SPA without a runtime/build dependency. |
 
-**Invariant `INV-PROV-01`:** *No segment of the v9.1.0.1 nomenclature shall be treated as normative until the PDF is committed to `docs/spec/` under version control.* All `[R]` rows are provisional.
+These are conflicts between editions/implementations, not evidence that the inaccessible Addendum says something different. Undefined rules remain surfaced below rather than being filled in by inference.
 
-**Remediation instruction:** commit the PDF (or a plaintext extract) to
-`docs/spec/EFNAI-v9.1.0.1-draft.pdf`. The audit and all downstream code regenerate from that artifact.
+## 4. Smart Review Queue contract
 
----
+Uncertainty is quarantined, not guessed. A queued record does not receive a committed archive ID until it is resolved, except for a legacy ID explicitly reserved during an additive V6.2 import. A record cannot leave the queue without a recorded human decision and timestamp.
 
-## 1. Canonical Nomenclature — v9.1.0.1
+Current review triggers include title overflow, unknown/ambiguous/implausible date, low confidence, taxonomy failure, missing source hash, reserved filename, legacy arity overflow, filename-length overflow, disambiguation overflow, and exhausted ID space. A trigger name or threshold not established by accessible master text is an implementation rule, not a claim about section 13.
 
-### 1.1 Core string `[G]` (arity confirmed by **G-02**)
+Queue and ledger IDs are separate namespaces: queue IDs use `SRQ-` plus a monotonic sequence; archive IDs use `FILE` plus the numeric high-water mark. Queue removal, resolution, and discard are transactional with their audit events.
 
-```
-[YYYY.MM.DD].[CASE].[TYPE].[TITLE].[VER].[PRIV].[ORIGIN].[AUTHOR].[E1].[E2].[E3].[ID]
- └───────────────── 8 base parts ─────────────────────┘└─ ext ─┘   └── ID ──┘
- └──────────────────── 12 parts total ────────────────────────────────────────┘
-```
+- **`INV-SRQ-01` — uncertainty:** never guess a missing or ambiguous policy value into a committed record.
+- **`INV-SRQ-02` — title overflow:** keep the complete `TITLE`; require human review for values over 35 characters and for suffix overflow.
+- **`INV-SRQ-03` — queue exit:** a queued row leaves only through an attributed human resolution or discard event with actor and timestamp.
 
-**Invariant `INV-NOM-01` — Period delimiter:** the field separator is **exactly one U+002E FULL STOP**. No segment may itself contain a period.
+## 5. Undefined or deployment-dependent properties
 
-**Invariant `INV-NOM-02` — Fixed prefix:** slots 1–8 are **positionally immutable**.
+The following items are not silently treated as settled by this implementation. Some have safe local defaults; others require policy-owner input before an organizational or multi-user deployment.
 
-**Invariant `INV-NOM-03` — Terminal ID:** `ID` is the **last** segment, format `FILE\d{6}` (zero-padded, monotonic, **never reused**).
-
-**Invariant `INV-NOM-04` — Case sensitivity:** all segments are emitted **UPPERCASE** except `VER`, which is lowercase-`v` prefixed for numeric drafts (`v01`) and uppercase for status words (`FIN`, `EXE`).
-
-**Invariant `INV-NOM-06` — Single serializer.** One `buildName(parts) → string` / `parseName(string) → parts` pair is the sole point where slot concatenation occurs. V6.2 violates this in **three** places (`:559`, `:575`, `:743`) with divergent logic.
-
-**Invariant `INV-NOM-07` — Arity is 12.** Any string whose parsed slot count ≠ 12 is **structurally non-conformant** and is rejected by the validator. *(V6.2 produced variable arity: 9 parts + 0..n extensions.)*
-
-### 1.2 Segment contract — 12 slots
-
-| # | Slot | Format | Constraint | Source | V6.2 |
-|---|---|---|---|---|---|
-| 01 | `DATE` | `YYYY.MM.DD` | ISO 8601 calendar date; **not** the file mtime | `[G]` | ✅ |
-| 02 | `CASE` | `[A-Za-z0-9]{1,24}` | Matter / client / dispute; PascalCase | `[R]` len | ✅ |
-| 03 | `TYPE` | `[A-Z]{4,6}` | Structural document class | `[G]` | ✅ |
-| 04 | `TITLE` | `[A-Za-z0-9]{1,35}` | Human-readable subject; **>35 ⇒ Smart Review Queue** | `[G]` | ❌ |
-| 05 | `VER` | `v\d{2}` \| `[A-Z]{3,4}` | Draft index or finality token | `[G]` | ✅ |
-| 06 | `PRIV` | `[A-Z]{4}` | Privilege shield tag | `[G]` | ✅ |
-| 07 | `ORIGIN` | `[A-Z]{4}` | Provenance / source alignment | `[G]` | ✅ |
-| 08 | `AUTHOR` | `[A-Z]{2,24}` | First initial + last name, or entity code (U-05) | `[R]` len | ⚠️ unbounded |
-| 09 | `E1` — `BATES` | `[A-Za-z0-9]{0,18}` | Bates stamped number | `[R]` name | ❌ |
-| 10 | `E2` — `VENUE` | `[A-Za-z0-9]{0,18}` | Judicial venue | `[R]` name | ❌ |
-| 11 | `E3` — `SUBP` | `[A-Za-z0-9]{0,18}` | Subpoena issuer | `[R]` name | ❌ |
-| 12 | `ID` | `FILE\d{6}` | Ledger key; assigned `max+1` under lock | `[G]` | ⚠️ C-06 |
-
-**Empty extension policy:** a standing extension with no value emits the literal placeholder **`NA`** (never an empty segment, which would produce `..` and an ambiguous parse). *(Provisional — confirm against PDF.)*
-
-**Total length budget:** 10 + 24 + 6 + 35 + 4 + 4 + 4 + 24 + 18×3 + 11 ≈ **220 max**, under the Windows 260 `MAX_PATH` floor only if the **directory path is ≤ 40 chars**. Hence **`INV-NOM-08`: the emitted filename must be ≤ 180 characters**, and the extension slots are the first to be compacted.
-
----
-
-### 2.5 Smart Review Queue — triage state machine `[G-03]`
-
-The single largest architectural addition in v9.1.0.1. V6.2 has **no review state whatsoever**: it writes every record directly into the master ledger.
-
-**Invariant `INV-SRQ-01`: uncertainty is quarantined, never guessed.**
-
-```
-        ┌──────────┐   all slots resolved, arity 12, TITLE ≤ 35
-        │ EXTRACT  │──────────────────────────────────────────────┐
-        └────┬─────┘                                              ▼
-             │ any trigger fires                            ┌───────────┐
-             ▼                                              │   READY   │
-      ┌─────────────┐    human adjudication     ┌───────────┴───────────┘
-      │   REVIEW    │──────────────────────────▶│    COMMITTED          │
-      │ (SRQ entry) │   (edits / re-extract)    │  ID assigned, hashed  │
-      └─────┬───────┘                           └───────────────────────┘
-            │ operator rejects the item
-            ▼
-      ┌─────────────┐
-      │  DISCARDED  │  retained for audit; never renamed on disk
-      └─────────────┘
-```
-
-#### Admission triggers (any one quarantines the record)
-
-| Trigger | Condition | Rationale |
+| ID | Undefined property | Current safe treatment / status |
 |---|---|---|
-| `TITLE_OVERFLOW` | `len(TITLE) > 35` | **G-03** — the file is *uncertain* |
-| `DATE_UNKNOWN` | no date found in content | `INV-SRQ-01` — `0000.00.00` is not a date |
-| `DATE_AMBIGUOUS` | `MM/DD` vs `DD/MM` both ≤ 12 | **U-02** — silently picks the wrong day 11/12 of the time |
-| `DATE_IMPLAUSIBLE` | year < 1900 or > current + 5 | OCR corruption (`2O24`, `1S.03.2020`) |
-| `LOW_CONFIDENCE` | extracted slot fails the validator | malformed `TYPE`, unknown `PRIV` |
-| `EXTENSION_REQUIRED` | a standing extension is blank | arity 12 is mandatory |
-| `RESERVED_NAME` | result matches a Windows device name | see **U-09** |
-| `COLLISION_UNRESOLVED` | ordinal exceeded a sane bound (e.g. `Part9`) | 9 identically-named documents is a data problem, not a naming problem |
+| U-01 | Unknown or illegible document date | Keep unknown; route to review. Never substitute file mtime. |
+| U-02 | Ambiguous `MM/DD` vs `DD/MM` date | Route for human adjudication; do not guess. |
+| U-03 | Local vs UTC “today” | Use local calendar date for prefill. |
+| U-04 | Unicode/diacritic folding | Fold to ASCII through the sanitizer; verify source text before final use. |
+| U-05 | Institutional/non-person `AUTHOR` values | Alphanumeric mixed-case is supported; exact authority/registry rules remain undefined. |
+| U-06 | Controlled matter/case registry and aliases | Not implemented; matter-name governance remains open. |
+| U-07 | Per-segment maximums beyond explicit title/name budget | Current UI/parser bounds are implementation limits; review policy-owner requirements before enforcing organizational limits. |
+| U-08 | Illegal filesystem characters | Sanitizer removes them; generated scripts use safe quoting and reject unsafe batch filenames. |
+| U-09 | Reserved Windows device names | Guarded by suffixing `_`; verify platform-specific edge cases before large batch rename. |
+| U-10 | Trailing dot/space | Stripped by the sanitizer. |
+| U-11 | Total ordering between `vNN`, `DRAFT`, `FINAL`, `REV`, `EXE` | Values are supported; no total precedence is inferred. Define before any “latest version” automation. |
+| U-12 | Deduplication scope | Current engine compares the complete non-ID tuple across the local ledger; policy may require matter-specific scope. |
+| U-13 | Delete, void, supersede lifecycle | IDs are never reused; no destructive ledger wipe is exposed. Formal retention/void rules remain open. |
+| U-14 | Cross-tab and crash consistency | IndexedDB transactions plus Web Locks/BroadcastChannel when available; localStorage fallback journals writes. Verify on target browsers. |
+| U-15 | Browser quota and private-mode behavior | IndexedDB primary with compatibility mirror; failures are surfaced. Backups remain essential. |
+| U-16 | Intake batch size | Current limits: 25 files, 20 MiB each, 200 MiB total per batch; tune only with memory testing. |
+| U-17 | PII in filenames and taxonomy policy | Current taxonomy supports sensitivity labels; exact redaction/classification requirements need a policy owner. |
+| U-18 | WORM/legal-hold guarantees | Hash chains detect edits; browser storage is not WORM or a trusted timestamp authority. Use external access controls/immutable storage for legal hold. |
+| U-19 | Backup passphrase rotation/re-encryption workflow | KDF/cipher metadata is versioned; a dedicated re-key workflow is not implemented. |
+| U-20 | Identity, RBAC, and multi-user attribution | Out of scope for the local SPA; `operator` is not authenticated identity. Define before shared organizational use. |
+| U-21 | Cloud residency/sync and backup ownership | No cloud sync is implemented. Define provider, region, access, retention, and recovery ownership separately. |
+| U-22 | Additional parts beyond the fixed twelve | Not supported; accessible master order is exactly twelve parts. Revisit only if the policy owner supplies a superseding edition. |
+| U-23 | Review SLA/escalation | Queue depth and age are visible; no automatic discard or escalation is implemented. |
+| U-24 | Secondary-slot ordering/meaning | Fixed, order-significant positions: TYPE2, PRIV2, ORIGIN2. |
+| U-25 | Queued records in rename scripts | Excluded. Only committed ledger records are scripted. |
+| U-26 | Section 13 Addendum body | Not supplied/accessed. Do not infer its contents or claim a thirteen-section audit. |
+| U-27 | Filename-extension suffix rules | Current code accepts up to three suffix components within a 32-character extension; confirm policy-owner needs if broader support is required. |
 
-#### Queue entry schema
+## 6. Session 4 implementation traceability
 
-```jsonc
-{
-  "queueId":   "SRQ-2026-000007",     // monotonic, independent of FILE IDs
-  "reason":    "TITLE_OVERFLOW",      // trigger id
-  "severity":  "blocking",            // "blocking" | "advisory"
-  "draft":     { "date": "2024.03.11", "case": "SmithVWong", "title": "<41 chars>" },
-  "detected":  { "chars": 41, "limit": 35, "excess": 6 },
-  "extraction":{ "model": "gemini-2.5-flash", "confidence": 0.72, "raw": "…" },
-  "fileName":  "IMG_4471.pdf",        // untouched on disk
-  "createdAt": "2026-10-02T18:22:41Z",
-  "status":    "REVIEW"               // REVIEW | READY | COMMITTED | DISCARDED
-}
-```
-
-#### Resolver affordances (operator actions)
-
-| Action | Effect |
-|---|---|
-| **Shorten** | Operator supplies a ≤ 35-char title; provenance records *who* shortened it |
-| **Split** | The document is actually two documents → two queue entries |
-| **Re-extract** | Re-run vision inference with a stricter prompt |
-| **Correct date** | Operator picks the unambiguous date; the choice is recorded |
-| **Accept as-is** | Explicit override → `READY`, but the row is flagged **`manual_override: true`** permanently |
-
-> **Invariant `INV-SRQ-03` — No silent escape.** *Every* record leaving the queue carries an `resolvedBy` and `resolvedAt`. A record may not transition `REVIEW → READY` without an attributed human decision.
-
-#### Consequences for V6.2
-
-| V6.2 behaviour | Required v9.1.0.1 behaviour |
-|---|---|
-| `\|\| "NOTITLE"` fallback | `TITLE_OVERFLOW` / `LOW_CONFIDENCE` → queue |
-| `\|\| '0000.00.00'` | `DATE_UNKNOWN` → queue |
-| Writes directly to `masterLog` | Writes to the queue; ledger commit is a **separate, gated** transition |
-| No review surface | Queue must be a first-class tab with per-item adjudication |
-| Collision suffix silently appended | `COLLISION_UNRESOLVED` past `Part9` → queue |
-
----
-
-## 2. Contradiction Register
-
-Ordered by severity. **`BLOCKER`** = produces corrupt or unrecoverable output.
-
-### C-01 — Duplicate suffix: README says `-Part2`, code emits `Part2` `BLOCKER` → **RESOLVED by G-01**
-
-| Source | Statement | Verdict |
+| Requirement | Implementation location | Verification |
 |---|---|---|
-| `README.md` | "automatically appended with sequential version control (**`-Part2`**)" | ❌ **incorrect — README is wrong** |
-| `index.html:577` | `docTitle += 'Part2';` | ✅ **correct** |
-| **Operator (G-01)** | `Part2`, no hyphen | ✅ **authoritative** |
-
-**Resolution:** the hyphen is **not** part of the nomenclature. `TITLE` remains strictly `[A-Za-z0-9]+`. Two follow-on defects remain open in the *implementation* (not the spec) — see **C-08** (saturation) and **C-09** (substring matching). The README must be corrected.
-
----
-
-### C-13 — README specifies a **9-part** nomenclature; the policy is **12-part** `BLOCKER` → **RAISED by G-02**
-
-| Source | Statement |
-|---|---|
-| `README.md` | "The foundational **9-part** formula operates as follows: `[YYYY.MM.DD].[CASE].[TYPE].[TITLE].[VER].[PRIV].[ORIGIN].[AUTHOR].[ID]`" |
-| **Operator (G-02)** | v9.1.0.1 is a **12-Part Nomenclature Policy** |
-
-The README's "9-part" figure is **arithmetically inconsistent with its own example**: the quoted string has **nine dot-separated tokens but only eight semantic parts plus `ID`**. It also contradicts the v9.1.0.1 designation. Three extension slots (`E1`/`E2`/`E3`) are **standing parts**, not optional — the README describes them as *"infinite extensions … inserted dynamically"*, which is the **V6.2** behaviour that v9.1.0.1 **supersedes**.
-
-**Impact:** `INV-NOM-07` — arity is fixed at **12**. Every V6.2-generated filename is arity-9 and therefore **structurally non-conformant** under v9.1.0.1. Migration is required (see §5).
-
-**Invariant `INV-NOM-09` — Supersession.** *Where `README.md` and the v9.1.0.1 policy conflict, the policy governs. The README is descriptive documentation of V6.2 and is not normative.*
-
----
-
-### C-14 — README "infinite extensions" contradicts fixed 12-part arity `MAJOR`
-
-The README promises *"endless `[CUSTOM_SEGMENT]` rules"*. A fixed arity of 12 makes the slot count **bounded and order-significant**. These cannot both hold.
-
-**Provisional resolution:** the three extension slots are **standing**; *within* each slot the **value** is free-form (the README's real requirement — Bates numbers, venues and subpoena issuers must all be recordable). Unbounded *arity* is withdrawn.
-
-**Open question `U-22`:** may a deployment declare **more than three** extension slots (arity > 12)? If yes, the fixed-12 invariant becomes a **floor**, not an equality, and the validator's rules change. **Needs operator confirmation.**
-
-
----
-
-### C-02 — `TITLE` max length is specified but never enforced `BLOCKER`
-
-| Source | Statement |
-|---|---|
-| `README.md` | "Title: Human-readable subject matter (Strictly CamelCase, **max 35 characters**)" |
-| `index.html:557` | `let docTitle = toCamelCase(...) \|\| "NOTITLE";` — no length check |
-| `index.html:744` | `res.title += 'Part2'` — grows without bound |
-
-**Invariant `INV-NOM-05`:** *`len(TITLE) ≤ 35`, measured after PascalCase folding and **before** any collision suffix.*
-
-V6.2 violates this on every long title, on AI-extracted titles, and again on collision append. Violation propagates into Windows `MAX_PATH` and OS filename limits.
-
----
-
-### C-03 — "CamelCase" is not CamelCase `MAJOR`
-
-`toCamelCase()` (`index.html:543`) uppercases the first letter of every word:
-
-```js
-(str||"").replace(/(?:^\w|[A-Z]|\b\w)/g, w => w.toUpperCase())…
-// "smith v wong" → "SmithVWong"
-```
-
-That is **PascalCase / UpperCamelCase**. True camelCase would be `smithVWong`. The README's "Strictly CamelCase" is therefore **misleading and ambiguous** — and `AUTHOR` `RWILLIAMS` is neither.
-
-**Resolution required:** rename the requirement to **"PascalCase, alphanumeric-only"** throughout, or change the implementation. Provisional: keep PascalCase, fix the wording.
-
----
-
-### C-04 — "Encrypted" cloud backup is plaintext `BLOCKER`
-
-| Source | Statement |
-|---|---|
-| `README.md` | "silently push **an encrypted backup** of the Master Ledger" |
-| `index.html:836-841` | `set(ref(db,'masterArchive'), masterLog)` — **raw JSON, no crypto** |
-
-No `crypto.subtle`, no AES-GCM, no key derivation exists anywhere in the file. The claim is **false as implemented** and is a **legal-compliance liability** given the data class (privileged legal documents).
-
-**Invariant `INV-SEC-01`:** *Any egress of the Master Ledger must be preceded by authenticated encryption (AES-256-GCM, key derived via PBKDF2-SHA256 ≥ 600 000 iterations or Argon2id) with the IV and salt stored alongside the ciphertext.*
-
----
-
-### C-05 — API key stored in cleartext in `localStorage` `BLOCKER`
-
-| Source | Statement |
-|---|---|
-| `index.html:246` | `Key encrypts locally to browser storage. Never committed to server.` |
-| `index.html:893` | `localStorage.setItem('v6_api_key', keyInput);` — **plaintext, unencrypted, no expiry** |
-
-The UI text asserts encryption that does not occur. Additionally:
-
-* `localStorage` is readable by **any** script on the origin (no CSP is declared anywhere in the document) → persistent XSS = exfiltration of a billable Gemini key.
-* The key is **never read back**. See C-06.
-
-**Invariant `INV-SEC-02`:** *Credential material is held in memory only, or in an encrypted vault with an expiry; it must never be written to `localStorage` as cleartext.*
-
----
-
-### C-06 — The Vision AI path is completely non-functional `BLOCKER`
-
-This is the headline finding. Three defects compose:
-
-| # | Evidence | Effect |
-|---|---|---|
-| a | `index.html:336` — `const apiKey = "";` | Request always carries an **empty** key |
-| b | `index.html:652` — `…?key=${apiKey}` | Uses the empty constant, **never** `localStorage.v6_api_key` |
-| c | `index.html:327` — `onclick="saveApiKey()"` | **`saveApiKey` is never defined** → `ReferenceError` on click |
-| d | `index.html:322` — `id="apiModal"` | **Never opened.** No `openApiModal()`, no `.hidden` removal, no trigger anywhere |
-
-**Net:** the modal cannot be opened; its only button throws; the stored key is never consumed by the fetch. The "Multimodal Vision Ingestion" capability advertised in the README **does not execute**.
-
-**Invariant `INV-AI-01`:** *The API key must be resolved at call time from a single authoritative accessor (`getApiKey()`), and a missing key must surface a recoverable, user-visible prompt — never a silent empty-string request.*
-
----
-
-### C-07 — Archive ID monotonicity is not guaranteed `MAJOR`
-
-`currentArchiveNum` (`index.html:351`) is a single global counter, incremented **only** inside `saveToLog()` (`index.html:601`).
-
-* No import path exists, so a **restored/replayed ledger** (or a second device, or a Firebase pull-back) will re-issue `FILE000001…` over existing records.
-* Cache eviction of `v6ArchiveNum` while `v6MasterLog` survives → **counter resets to 1** and **collides with every existing ID**.
-* No uniqueness check is performed at write time.
-
-**Invariant `INV-ID-01`:** *`ID` is assigned as `max(existing numeric suffix) + 1`, validated for uniqueness against the ledger immediately before persistence; the persisted counter is a cache, never the authority.*
-
----
-
-### C-08 — Collision suffix saturates at `Part2` `BLOCKER`
-
-`index.html:742-747`:
-
-```js
-if (checkCollision(proposed)) {
-    res.title += 'Part2';
-    proposed = proposed.replace(res.title.replace('Part2',''), res.title); // "Rough hack"
-}
-```
-
-* A **third** arrival of the same base string is *still* a collision after appending `Part2` — and the loop does not re-test. `UNIQUE_TITLE` and `UNIQUE_TITLEPart2` both then receive a distinct `ID`, so duplicates survive.
-* The `.replace()` on the first occurrence is **positionally unsafe**: if the title substring also appears inside `CASE`, the **wrong segment is mutated**, corrupting the case name.
-* `index.html:569` (manual path) performs the same append **without re-testing**.
-
-**Invariant `INV-DUP-01`:** *Disambiguation is `while (exists(candidate)) n++; candidate = base + "Part" + n;` — an **unbounded, re-tested** ordinal.*
-
----
-
-### C-09 — `checkCollision()` has O(n·m) cost and a substring false-positive `MAJOR`
-
-`index.html:532-538`:
-
-```js
-const baseGenerated = parts.slice(0, 8).join('.');
-const exists = masterLog.find(log => log.newName.includes(baseGenerated));
-```
-
-`String.prototype.includes` is a **substring** test, not a segment-equality test. `…NOCASE.DOCU.Will` matches a stored `…NOCASE.DOCU.Williamsburg`. False positives silently trigger `Part2` on **non-duplicates**.
-
-**Invariant `INV-DUP-02`:** *Duplicate detection compares **segment tuples** (array equality over `split('.')`), never substrings.*
-
----
-
-### C-10 — `TYPE` extraction is positional-locked `MINOR`
-
-`saveToLog()` derives analytics data via `type: newName.split('.')[2]` (`index.html:600`). `generateManualName()` and the batch path rebuild the string in three separate places (`:559`, `:575`, `:743`) with **divergent logic**. Any future reorder of segments silently mis-attributes every record.
-
-**Invariant `INV-NOM-06`:** *A single `buildName(parts) → string` and `parseName(string) → parts` pair is the sole serializer. No call site concatenates segments inline.*
-
----
-
-### C-11 — GitHub Pages deployment is guaranteed to fail `MAJOR`
-
-`.github/workflows/nuxtjs.yml` runs `npm ci` / `npm run generate` against a Nuxt project. The repository contains **no `package.json`** and **no Nuxt source**. The "Detect package manager" step:
-
-```bash
-else
-  echo "Unable to determine package manager"
-  exit 1
-fi
-```
-
-exits **1** on every push to `main`. The `pages` job therefore never deploys. `.github/workflows/blank.yml` is an inert `echo Hello, world!` placeholder.
-
----
-
-### C-12 — Model identifier is not a stable release `MINOR`
-
-`index.html:652` requests
-`gemini-2.5-flash-preview-09-2025`. The `-preview-YYYY-MM-DD` alias is a **moving/retiring** identifier, not a pinned GA model. Preview aliases are deprecated without notice and would silently break ingestion.
-
-**Invariant `INV-AI-02`:** *The model id is a configurable constant resolved from Settings; the default is a GA model (`gemini-2.5-flash`) and the retry ladder never hard-codes a dated preview alias.*
-
----
-
-## 3. Undefined Property Register
-
-Each row states the **gap**, the **risk if left open**, and the **provisional resolution** adopted by this build.
-
-| ID | Gap | Risk | Provisional resolution | Status |
-|---|---|---|---|---|
-| U-01 | No policy for **unknown / illegible document date** | Fabricated dates corrupt chronology | Emit `0000.00.00` + set `needs_review=true`; **never** substitute mtime | **RESOLVED** |
-| U-02 | `MM/DD` vs `DD/MM` ambiguity in AI extraction | 11 of 12 days misplaced | Require ISO in the extraction schema; if ambiguous and both ≤12, flag for human review | **RESOLVED** |
-| U-03 | **Timezone** of "today" | Off-by-one across UTC boundaries | Use **local calendar date** via `Intl.DateTimeFormat`, never `toISOString()` | **RESOLVED** |
-| U-04 | **Unicode / diacritic** folding (`José`, `Müller`) | Silent data loss or illegal bytes | NFD-normalise → strip combining marks → ASCII fold | **RESOLVED** |
-| U-05 | `AUTHOR` for **corporate / institutional** documents | Free-text garbage in filename | Permit 4-letter **entity code** from `ORIGIN` taxonomy when no natural person exists | **RESOLVED** |
-| U-06 | `CASE` is **free text** — no matter registry | `SmithVWong` / `Smithvwong` / `Smith_V_Wong` fragment one matter | Controlled matter registry with alias resolution | **OPEN — needs user** |
-| U-07 | Max length for `CASE`, `AUTHOR`, custom segments | Windows `MAX_PATH` (260) overflow | 24 / 24 / 24 chars; total filename ≤ 180 | **RESOLVED** |
-| U-08 | **Illegal OS characters** `< > : " / \ \| ? *` and control codes | Silent `ren`/`mv` failure; NTFS rejection | Strip at build time via `sanitize()` | **RESOLVED** |
-| U-09 | **Reserved Windows device names** (`CON`, `PRN`, `AUX`, `NUL`, `COM1-9`, `LPT1-9`) | File becomes unreadable on Windows | Append `_` when a segment matches | **RESOLVED** |
-| U-10 | Trailing **dot / space** rejection on NTFS | Silent write failure | Strip trailing `.` and ` ` | **RESOLVED** |
-| U-11 | **`VER` monotonicity** — is `FIN > v03`? | Non-deterministic "latest" resolution | Define total order: `v01<…<v99<TEMP<DRAF<REDA<AMND<SUPP<FIN<EXE<VOID` | **RESOLVED** |
-| U-12 | **Collision scope** — global or per-matter? | `Part2` spawned for unrelated matters | Scope = **(CASE, TYPE, TITLE, VER)** tuple, global ledger | **OPEN — needs user** |
-| U-13 | `ID` lifecycle on **delete / void / supersede** | Reuse breaks provenance chain | IDs are **never reused**; `VOID` is a status, not a deletion | **RESOLVED** |
-| U-14 | **Concurrency** — two tabs, same ledger | Lost update, duplicate IDs | `storage` event + optimistic-merge + advisory `BroadcastChannel` lock | **RESOLVED** |
-| U-15 | `localStorage` **quota** (~5 MiB) exhaustion | Silent `QuotaExceededError`, data loss | Migrate to **IndexedDB** (Dexie) with a `localStorage` shim | **RESOLVED** |
-| U-16 | **Batch limits** — file count / byte size | Browser OOM on 4 GB of scanned PDFs | ≤ 25 files, ≤ 20 MiB each, ≤ 200 MiB total per batch | **RESOLVED** |
-| U-17 | **PII in the filename itself** | Filenames leak through OS indexers, mail attachments, sync clients | `PII`/`HIPA` tags **must** accompany a redaction or be flagged `SECR` | **OPEN — needs user** |
-| U-18 | **Audit-log immutability** (legal hold / WORM) | Ledger edit destroys provenance | Append-only ledger; edits recorded as new events with `prevHash` (SHA-256 chain) | **RESOLVED** |
-| U-19 | **Key rotation** for the cloud vault | Compromise is unrecoverable | Vault header stores `keyId` + `iterations`; re-key command available | **RESOLVED** |
-| U-20 | **RBAC / multi-user** | No separation of privilege | Out of scope for a client-side SPA; documented as a **deployment constraint** | **OPEN — needs user** |
-| U-22 | Does the 12-part arity admit **more than three** extension slots? | Validator rules, migration, UI | Treat 12 as a **fixed equality**; escalate to a floor if confirmed otherwise | **OPEN — needs user** |
-| U-23 | What is the **review SLA / escalation** for a queued record? | Stale queue = silent data loss | Surface queue depth + age on the dashboard; never auto-discard | **OPEN — needs user** |
-| U-24 | Are the three extension slots **order-significant** or keyed by name? | Misordered slots corrupt downstream parsing | **Order-significant**, positional | **RESOLVED** |
-| U-25 | Does a queued record ever appear in **rename scripts**? | Queued files renamed with guessed names | **No** — only `READY`/`COMMITTED` records are scripted | **RESOLVED** |
-
----
-
-## 4. Requirements Traceability Matrix
-
-| `[G]`/`[R]` Requirement | Source | V6.2 status | v9.1.0.1 target | Session |
-|---|---|---|---|---|
-| **12-part** period-delimited nomenclature | **G-02** | ❌ emits 9 | ✅ **fixed arity 12** | 2 |
-| 3 standing extension slots before `ID` | **G-02** | ❌ 0..n dynamic | ✅ `BATES` / `VENUE` / `SUBP`, `NA` when empty | 2 |
-| `TITLE ≤ 35`, else **Smart Review Queue** | **G-03** | ❌ absent | ✅ **triage state machine** | 2 |
-| V6.2 arity-9 ledger → arity-12 | **C-13** | ❌ absent | ⚠️ migration transcoder | 2 |
-| PascalCase (né "CamelCase") | README | ⚠️ ambiguous | ✅ rename + enforce | 2 |
-| Duplicate suffix = **`Part2`, no hyphen** | **G-01** | ⚠️ saturates at `Part2` | ✅ unbounded ordinal | 2 |
-| Sequential `FILE######` ledger ID | README | ⚠️ resettable (C-06) | ✅ `max+1` under lock | 2 |
-| Multimodal Vision ingestion | README | ❌ **dead** (C-06) | ✅ functional · key via `getApiKey()` | 2 |
-| Persistent local ledger | README | ⚠️ 5 MiB cap | ✅ IndexedDB | 2 |
-| Encrypted cloud sync | README | ❌ plaintext (C-04) | ✅ AES-256-GCM | 4 |
-| CSV export w/ UTF-8 BOM | README | ✅ implemented | ✅ keep | 2 |
-| `.bat` + `.sh` rename scripts | README | ✅ implemented | ⚠️ harden quoting · **exclude queued rows** | 2 |
-| Duplicate detection | README | ⚠️ substring, saturating | ✅ tuple-exact | 2 |
-| Zero-server / data sovereignty | README | ⚠️ telemetry-free but key leaky | ✅ harden | 4 |
-| Run with **no build step** | README | ⚠️ 4 CDN deps | ✅ pin + SRI, or bundle | 3 |
-| SPA deployment guide | request | ❌ absent | 📄 `docs/GUIDE-SPA.md` | 3 |
-| Android application | request | ❌ absent | 📄 `docs/GUIDE-ANDROID.md` + Capacitor project | 5 |
-| iOS application | request | ❌ absent | 📄 `docs/GUIDE-IOS.md` + Capacitor project | 6 |
-| Terminal command engine | request | ❌ absent | 🛠 `tools/terminal-engine.html` | 1 ✅ |
-| GitHub Pages CI | `.github` | ❌ always fails (C-11) | ✅ correct workflow | 7 |
-
----
-
-## 5. Immediate Actions (in priority order)
-
-| # | Action | Owner | Blocking |
-|---|---|---|---|
-| 1 | **Commit the v9.1.0.1 PDF** to `docs/spec/` | **User** | Audit finalisation |
-| 2 | **Confirm the three extension slot identities/order** (§1.1) — the only `[R]` left in the core contract | **User** | Session 2 reconciliation (1-object edit) |
-| 3 | ~~Resolve C-01~~ → **`Part2`, no hyphen** | ✅ G-01 | — |
-| 4 | ~~Resolve C-02~~ → **Smart Review Queue** | ✅ G-03 | — |
-| 5 | ~~Resolve C-13~~ → **12-part arity** | ✅ G-02 | — |
-| 6 | Confirm **U-06** matter registry, **U-12** collision scope, **U-17** PII policy, **U-20/21** multi-user & residency, **U-22** arity floor, **U-23** queue SLA | **User** | Cloud sync + queue design |
-| 7 | Land Session 2 — 12-part engine + Smart Review Queue against provisional resolutions | Agent | — |
-| 8 | Replace `nuxtjs.yml` with a static Pages workflow | Agent | — |
-| 9 | Correct `README.md` (9-part → 12-part; `-Part2` → `Part2`) | Agent | — |
-
-**Invariant `INV-GOV-01`:** *No `[R]`-marked constraint may be promoted to `[G]` without a citation to the committed PDF.*
-
-**Invariant `INV-GOV-02`:** *An operator statement that contradicts the README is ground truth; the README is amended, never the operator.*
-
-### 4.1 Migration — arity-9 → arity-12 (`C-13`)
-
-Every filename and ledger row produced by V6.2 is **structurally non-conformant** under v9.1.0.1. Migration is **additive and lossless**:
-
-```
-V6.2:  <date>.<case>.<type>.<title>.<ver>.<priv>.<origin>.<author>.<ext…>.FILE######
-v9.1:  <date>.<case>.<type>.<title>.<ver>.<priv>.<origin>.<author>.NA.NA.NA.FILE######
-```
-
-| Rule | Detail |
-|---|---|
-| `ID` is **preserved verbatim** | The `FILE######` value is the primary key. Never re-issued, never renumbered. |
-| Existing extensions are **left-padded into `E1`…`E3`** | In declared order; surplus extensions beyond three are **refused** and routed to the Smart Review Queue as `ARITY_OVERFLOW`. |
-| Missing extensions emit **`NA`** | Never an empty segment. |
-| Entries where `TITLE > 35` | Routed to the **Smart Review Queue**, **not** auto-truncated (`INV-SRQ-02`). |
-| Migration is **idempotent** | Re-running on a migrated ledger is a no-op; arity 12 is detected and skipped. |
-| Migration writes an **audit event** | `{op: "MIGRATE_V62", from: 9, to: 12, count: n, at: …}` appended to the hash-chained audit log (U-18). |
-
-**Invariant `INV-MIG-01`:** *Migration never mutates an existing `ID` and never discards a ledger row. Every output row is derived, auditable and reversible.*
+| Canonical twelve-part order, secondary slots, title overflow, versions, extensions | `v9/index.html` | 10,000-name round-trip and policy tests |
+| AES-GCM/PBKDF2 encrypted backup and verified restore | `encryptBackup`, `decryptBackup`, `restoreEncryptedBackup` | Round trip, wrong passphrase, altered ciphertext, restore audit/high-water tests |
+| Memory-only 30-minute AI credential | Settings UI and `getApiKey` | Tests confirm memory-only set/clear; key absent from persistent payload |
+| IndexedDB and localStorage compatibility migration | `Store.init`, `hydrateStore` | fake-indexeddb migration and localStorage-journal tests |
+| Atomic cross-tab ledger/queue/audit writes | `Store.transact`, `commitRecord`, `enqueue`, queue exit paths | Concurrent two-context IndexedDB append test; chain and ID uniqueness verified |
+| Complete-record ledger/audit chains | `rowHash`, `makeAuditEntry`, `verifyChain` | Tampered ledger/audit row tests |
+| Intake file SHA-256 and metadata-only Integrity Vault | `runExtraction`, `makeVaultRecord`, `verifyVault` | Real byte-buffer hashing test; bytes absent from durable metadata |
+| Monotonic ID allocation | `nextId`, `idHighWater` state, restore/migration | Concurrent append and restore high-water tests |
+| Session 4 test suite | `tools/tests/v9-engine.test.js` | Run with `npm test`; see `docs/SESSION-4-REPORT.md` |
+
+## 7. Acceptance and source-access limits
+
+Session 4 acceptance checks tamper detection, altered-backup rejection, non-reused IDs, concurrent IndexedDB append uniqueness/chain integrity, and additive migration preserving existing IDs. Verification results are recorded in `docs/SESSION-4-REPORT.md`.
+
+Only accessible user-supplied text and repository artifacts were considered. The body of section 13 and the PDF binary were not accessed; this audit does not represent unseen content as reviewed.

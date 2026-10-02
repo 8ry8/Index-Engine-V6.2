@@ -1,6 +1,6 @@
 {
   "name": "index-engine",
-  "version": "9.1.0",
+  "version": "9.1.0.1",
   "private": true,
   "description": "EFNAI V9.1.0.1 nomenclature engine, self-contained SPA, and terminal command engine. Tailwind is inlined at maintenance time; the shipped SPA runs without a build step.",
   "license": "MIT",
@@ -9,10 +9,12 @@
     "serve": "node tools/static-server.mjs",
     "test:tce": "node tools/tests/terminal-engine.test.js",
     "test:v9": "node tools/tests/v9-engine.test.js",
-    "build:spa": "tailwindcss -i tools/tailwind.css -o .tailwind.tmp.css --minify && node tools/inline-tailwind.mjs .tailwind.tmp.css"
+    "build:spa": "tailwindcss -i tools/tailwind.css -o .tailwind.tmp.css --minify && node tools/inline-tailwind.mjs .tailwind.tmp.css v9/index.html",
+    "build:terminal": "tailwindcss -i tools/terminal-tailwind.css -o .tailwind.tmp.css --minify && node tools/inline-tailwind.mjs .tailwind.tmp.css tools/terminal-engine.html"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.3.3",
+    "fake-indexeddb": "^6.2.5",
     "jsdom": "^25.0.1",
     "tailwindcss": "^4.3.3"
   },

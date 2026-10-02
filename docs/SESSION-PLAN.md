@@ -2,12 +2,14 @@
 
 **Why sessions:** the original single-shot request exceeded the execution budget. The work is therefore decomposed into **7 segregated sessions**, each with a **self-contained, independently runnable deliverable** and an **explicit acceptance gate**. No session depends on an un-finished sibling to be verifiable.
 
+**Checkout-history reconciliation (2026-10-02).** The initial sandbox snapshot exposed only baseline `a8814bb`. Fetching the fixed Arena branch restored its existing Session 1–3 history through `070c422`; work continues on that same branch and does not rewrite those commits.
+
 **Invariants for every session**
 
 * **`INV-S1`** — Every session ships at least one **immediately runnable artifact** (open the file, it works). No placeholders, no `TODO`, no un-instantiated methods.
 * **`INV-S2`** — The SPA-family artifact is a **single self-contained HTML file** (Tailwind + JS inline, no build step).
-* **`INV-S3`** — The PDF is the **sole ground truth**; V6.2 is superseded wherever they conflict.
-* **`INV-S4`** — Every session ends with a **commit** to `arena/01a0fc76-index-engine-v6-2` and a Markdown report in `docs/`.
+* **`INV-S3`** — The user-supplied V9.1.0.1 text is normative wherever editions conflict. Only accessible pasted text may be claimed as reviewed; the body of section 13 and the PDF binary were not accessed.
+* **`INV-S4`** — Every session ends with a **commit** to `arena/01a0fc76-index-engine-v6-2` and a Markdown report in `docs/`. If a checkout is missing a previously reported commit, disclose the discrepancy and do not pretend it exists.
 
 ---
 
@@ -15,13 +17,13 @@
 
 | # | Session | Primary deliverable | Runtime artifact | Status |
 |---|---|---|---|---|
-| **1** | **Audit + Terminal Command Engine** | `docs/SPEC-AUDIT.md`, `docs/SESSION-PLAN.md` | `tools/terminal-engine.html` | ✅ **this session** |
-| **2** | **v9.1.0.1 Core Engine** | Superseding SPA per policy ground truth | `v9/index.html` | ✅ **complete** |
-| **3** | **SPA Deployment Guide** | Step-by-step SPA build → ship | `docs/GUIDE-SPA.md`, Pages workflow, PWA shell | ✅ **complete** |
-| **4** | **Cryptography + Ledger Hardening** | AES-GCM vault, hash-chained ledger, IndexedDB | `v9/index.html` (extended) | ⏳ **in progress** |
-| **5** | **Android Application** | Capacitor + native Kotlin/Compose track | `docs/GUIDE-ANDROID.md` + project | ⏳ |
-| **6** | **iOS Application** | Capacitor + native SwiftUI track | `docs/GUIDE-IOS.md` + project | ⏳ |
-| **7** | **CI/CD, Pages & Release** | Real Pages workflow, SRI pinning, release checklist | `.github/workflows/pages.yml` | ⏳ |
+| **1** | **Audit + Terminal Command Engine** | `docs/SPEC-AUDIT.md`, `docs/SESSION-PLAN.md`, report | `tools/terminal-engine.html` | ✅ **delivered; history recovery noted below** |
+| **2** | **v9.1.0.1 Core Engine** | Superseding SPA aligned to accessible master text, report | `v9/index.html` | ✅ **delivered; history recovery noted below** |
+| **3** | **SPA Deployment Guide** | Step-by-step SPA build → ship, report | `docs/GUIDE-SPA.md`, Pages workflow, PWA shell | ✅ **delivered; history recovery noted below** |
+| **4** | **Cryptography + Ledger Hardening** | AES-GCM backup, hash-chained ledger, IndexedDB, report | `v9/index.html` (extended) | ✅ **complete** |
+| **5** | **Android Application** | Capacitor wrapper (Kotlin/Compose alternative documented) | `docs/GUIDE-ANDROID.md`, `mobile/capacitor/android/` | ⏳ pending |
+| **6** | **iOS Application** | Capacitor SPM wrapper (SwiftUI alternative documented) | `docs/GUIDE-IOS.md`, `mobile/capacitor/ios/` | ⏳ pending |
+| **7** | **CI/CD, Pages & Release** | SHA-pinned CI/Pages/mobile builds, checksum + provenance release, governance | `.github/workflows/lint.yml`, `pages.yml`, `release.yml` | ⏳ pending |
 
 ---
 
@@ -33,7 +35,7 @@
 
 | File | Type | Contents |
 |---|---|---|
-| `docs/SPEC-AUDIT.md` | Markdown | Provenance notice, nomenclature contract, **12 contradictions (C-01…C-12)**, **21 undefined properties (U-01…U-21)**, traceability matrix |
+| `docs/SPEC-AUDIT.md` | Markdown | Accessible-source scope, corrected 12-part contract, historical V6.2 conflicts, unresolved-property register, and Session 4 traceability |
 | `docs/SESSION-PLAN.md` | Markdown | This file |
 | `tools/terminal-engine.html` | **Self-contained SPA** | Copy-paste terminal command engine |
 
@@ -47,7 +49,7 @@
 | **Per-step metadata** | Purpose, exact command, expected output, verification, failure recovery |
 | **Copy ergonomics** | Per-command copy, whole-step copy, "copy all remaining" |
 | **Progress state** | Checkbox per step, persisted per recipe in `localStorage` |
-| **Zero network** | No CDN required for logic; Tailwind via CDN with graceful degradation |
+| **Self-contained delivery** | Inline JavaScript and generated Tailwind CSS; no external runtime assets or build step to open the HTML |
 
 **Acceptance gate**
 
@@ -60,7 +62,7 @@
 
 ## Session 2 — v9.1.0.1 Core Engine ✅ COMPLETE
 
-**Goal.** Replace V6.2 with a spec-conformant engine implementing the operator confirmations **G-01…G-03**.
+**Goal.** Replace V6.2 behavior with a V9.1.0.1 engine aligned to the accessible master text and the operator-confirmed `Part2`/title-overflow rules.
 
 **Delivered**
 
@@ -69,17 +71,17 @@
 | 1 | Single serializer `buildName` / `parseName`; no inline concatenation anywhere | `INV-NOM-06` |
 | 2 | Syntax-driven validator over the 12-slot contract | `INV-NOM-05`, `INV-NOM-07` |
 | 3 | Sanitizer: Unicode fold, illegal chars, reserved names, trailing dots | U-04, U-08, U-09, U-10 |
-| 4 | Tuple-exact dedup + unbounded re-tested ordinal | `INV-DUP-01/02` |
+| 4 | Tuple-exact dedup + re-tested `Part2` ordinal; review when title would overflow | `INV-DUP-01/02` |
 | 5 | Smart Review Queue with 9 triggers and attributed adjudication | `INV-SRQ-01/02/03` |
 | 6 | Hash-chained append-only ledger, pure-JS SHA-256 | U-18 |
 | 7 | `max+1` ID allocation asserted unique at write time | `INV-ID-01` |
 | 8 | V6.2 → v9.1.0.1 migration, additive and idempotent | `INV-MIG-01` |
-| 9 | Zero-credential local ingestion; AI is optional, not load-bearing | closes C-06 |
+| 9 | Local extraction remains available without an API key; optional AI resolves an expiring memory-only key at call time | `INV-AI-01/02`, `INV-SEC-02` |
 | 10 | CSV (UTF-8 BOM), forward and **inverse** rename scripts | U-25 |
 
 **Acceptance gate — all met:** 10 000-name round-trip property test passes with zero divergence; no emitted name exceeds 180 characters; no output contains an OS-illegal character; **99/99 headless assertions green**.
 
-**Defect yield.** The round-trip property test caught the **parts-vs-fields** defect (12 parts / 14 fields) on its first run — precisely the class of error `INV-NOM-10` was written to prevent. Five further defects surfaced and were fixed. See the commit body for the enumeration.
+**Defect yield.** The round-trip property test caught the **parts-vs-fields** defect (12 semantic parts / 14 delimited fields) on its first run — precisely the class of error `INV-NOM-10` prevents. Additional defects surfaced and were fixed during implementation. See `docs/SESSION-2-REPORT.md` and the tests; no absent historical commit is assumed.
 
 ---
 
@@ -93,49 +95,37 @@
 
 ---
 
-## Session 4 — Cryptography + Ledger Hardening ⏳ IN PROGRESS
+## Session 4 — Cryptography + Ledger Hardening ✅ COMPLETE
 
-**Goal.** Close **C-04**, **C-05**, **C-07**, and **U-14…U-19** while reconciling the engine with the user-pasted V9.1.0.1 master text.
+**Goal.** Close the Session 4 security/storage gaps and reconcile the engine and audit with the accessible user-supplied V9.1.0.1 master text. Do not claim review of the inaccessible section 13 body or PDF binary.
 
-**Scope.** AES-256-GCM backup with PBKDF2-SHA256 ≥600,000 iterations and versioned KDF/key metadata; expiring memory-only AI key; IndexedDB with additive `localStorage` migration; BroadcastChannel/Web Locks coordination plus atomic IndexedDB writes; complete-record hash chaining; integrity metadata (file SHA-256, timestamp, size, MIME/source); max+1 ID allocation and write-time uniqueness. Reconcile the policy order, TYPE2/PRIV2/ORIGIN2, taxonomy, version examples, filename extension handling, and ID examples from the pasted master.
+**Delivered.** AES-256-GCM backup/restore using PBKDF2-SHA256 at 600,000 iterations with fresh salt/IV and authenticated metadata; memory-only 30-minute API key; IndexedDB primary storage with additive localStorage migration and journaled fallback; cross-tab serialization; complete-record ledger/audit chains; file SHA-256/metadata-only Integrity Vault; collision-safe max+1 IDs; escaped queue integrity/migration metadata; safely quoted forward/undo rename scripts; CSS inlined in the standalone SPA; corrected spec audit and plan.
 
-**Acceptance gate.** Tampering with a ledger row or audit event is detected; an altered encrypted backup is rejected before restore; a lost local counter never reissues an ID; concurrent IndexedDB append transactions produce unique IDs and a valid chain; migration is additive and does not rewrite an existing ID.
+**Acceptance gate — passed.** Tampered ledger/audit rows are detected without auto-repair; altered backups and wrong passphrases are rejected; local counters and restores never reduce the ID high-water mark; concurrent IndexedDB append transactions preserve unique IDs and a valid chain; migration is additive and preserves existing IDs. Combined tests: 21/21 Terminal + 24/24 V9; inline-script syntax check plus `npm run build:spa` and `npm run build:terminal` passed. See `docs/SESSION-4-REPORT.md` for exact scope and limits.
 
 ---
 
 ## Session 5 — Android Application
 
-**Goal.** `docs/GUIDE-ANDROID.md` + a runnable project skeleton.
+**Goal.** Ship `docs/GUIDE-ANDROID.md` and a clean-clone Capacitor project around the canonical V9 SPA; document Kotlin/Compose as an alternative.
 
-**Tracks**
-
-* **A — Capacitor wrapper.** `@capacitor/core|cli|android`, `cap init/add/sync`, `gradlew assembleDebug`/`bundleRelease`, keystore generation, `Play Console` internal-testing upload, `targetSdk` policy.
-* **B — Native Kotlin + Compose.** Room persistence, WorkManager batch ingestion, `ActivityResultContracts.OpenMultipleDocuments` SAF picker, Gemini via `generativeai` SDK with key in `EncryptedSharedPreferences`, `FileProvider` export.
-
-**Acceptance gate.** `./gradlew assembleDebug` produces an installable APK from a clean clone.
+**Acceptance gate.** `./gradlew assembleDebug` must produce an installable APK from a clean clone.
 
 ---
 
 ## Session 6 — iOS Application
 
-**Goal.** `docs/GUIDE-IOS.md` + a runnable project skeleton.
+**Goal.** Ship `docs/GUIDE-IOS.md` and a clean-clone Capacitor/SWIFT project around the canonical V9 SPA; document SwiftUI as an alternative.
 
-**Tracks**
-
-* **A — Capacitor wrapper.** `@capacitor/ios`, `cap add ios`, `xcodebuild archive` + `-exportArchive`, `ExportOptions.plist` (app-store / development), TestFlight upload.
-* **B — Native SwiftUI.** `SwiftData` ledger, `.fileImporter`, `PHPickerViewController` bridging, Keychain key storage, `UTType` handling for PDF.
-
-**Acceptance gate.** `xcodebuild -scheme App -configuration Release archive` succeeds on a clean clone (Apple toolchain required).
+**Acceptance gate.** Xcode archive must succeed on macOS.
 
 ---
 
 ## Session 7 — CI/CD, Pages & Release
 
-**Goal.** Close **C-11**; make the repository self-verifying.
+**Goal.** Harden Pages and CI, add release/checksum workflows, governance files, and a verifiable release process.
 
-**Scope.** Harden the Session 3 Pages workflow; add an independent `lint.yml` running HTML validation + headless smoke tests; pin third-party actions; remove remaining inert workflows; add a `release.yml` producing a versioned zip + checksums; add `CODEOWNERS`, `SECURITY.md`, and `CONTRIBUTING.md`. The shipped SPA no longer needs CDN SRI because Tailwind is inlined.
-
-**Acceptance gate.** Push to `main` yields a green Pages deployment reachable at `https://<user>.github.io/Index-Engine-V6.2/`.
+**Acceptance gate.** A push to `main` yields a green Pages deployment reachable at `https://<user>.github.io/Index-Engine-V6.2/`.
 
 ---
 
@@ -143,10 +133,10 @@
 
 | Session | Started | Completed | Artifact(s) | Gate |
 |---|---|---|---|---|
-| 1 | 2026-10-02 | 2026-10-02 | `docs/SPEC-AUDIT.md` rev1, `docs/SESSION-PLAN.md`, `tools/terminal-engine.html` | ✅ 20/20 |
-| 2 | 2026-10-02 | 2026-10-02 | `v9/index.html`, `tools/tests/v9-engine.test.js`, `docs/SPEC-AUDIT.md` rev2 | ✅ 99/99 |
-| 3 | 2026-10-02 | 2026-10-02 | `docs/GUIDE-SPA.md`, inline CSS/PWA sidecars, Pages workflow, `docs/SESSION-3-REPORT.md` | ✅ 122/122 |
-| 4 | 2026-10-02 | — | `v9/index.html` crypto/storage/spec reconciliation | ⏳ |
+| 1 | 2026-10-02 | 2026-10-02 | `docs/SPEC-AUDIT.md`, `docs/SESSION-1-REPORT.md`, `docs/SESSION-PLAN.md`, `tools/terminal-engine.html` | ✅ 21/21 terminal tests |
+| 2 | 2026-10-02 | 2026-10-02 | `v9/index.html`, `tools/tests/v9-engine.test.js`, `docs/SESSION-2-REPORT.md` | ✅ current V9 suite included in 24/24 |
+| 3 | 2026-10-02 | 2026-10-02 | `docs/GUIDE-SPA.md`, inline CSS/PWA sidecars, Pages workflow, `docs/SESSION-3-REPORT.md` | ✅ historical run recorded; current suite re-run in Session 4 |
+| 4 | 2026-10-02 | 2026-10-02 | `v9/index.html`, corrected audit/plan, `docs/SESSION-4-REPORT.md` | ✅ 21/21 Terminal + 24/24 V9; both builds and syntax checks passed |
 | 5 | — | — | — | — |
 | 6 | — | — | — | — |
 | 7 | — | — | — | — |

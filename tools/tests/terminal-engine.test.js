@@ -26,9 +26,9 @@ const dom = new JSDOM(html, {
   url: 'http://localhost/tools/terminal-engine.html',
   runScripts: 'dangerously',
   pretendToBeVisual: true,
-  resources: undefined,          // do NOT fetch the Tailwind CDN
+  resources: undefined,          // No external resources are allowed or fetched.
   virtualConsole: new (require('jsdom').VirtualConsole)()
-    .on('jsdomError', e => errors.push('jsdomError: ' + e.message))
+    .on('jsdomError', e => { if (e.type !== 'css parsing') errors.push('jsdomError: ' + e.message); })
     .on('error', e => errors.push('error: ' + e))
 });
 const { window } = dom;
@@ -39,6 +39,9 @@ const ok = (c, m) => T.push([c ? 'PASS' : 'FAIL', m]);
 
 // 1. boot without throwing
 ok(errors.length === 0, 'boots with zero script errors' + (errors.length ? ' → ' + errors.join(' | ') : ''));
+ok(doc.querySelectorAll('script[src],link[href],img[src],iframe[src]').length === 0 &&
+   doc.querySelector('#tailwind-generated')?.textContent.length > 3000,
+   'single-file artifact includes its styles and has no external runtime assets');
 
 // 2. nav rendered all 8 recipes
 const navBtns = doc.querySelectorAll('#recipeNav button[data-recipe]');

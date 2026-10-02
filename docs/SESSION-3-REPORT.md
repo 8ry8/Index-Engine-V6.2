@@ -1,8 +1,12 @@
 # Session 3 Report — SPA Deployment Guide
 
-**Date:** 2026-10-02  
-**Branch:** `arena/01a0fc76-index-engine-v6-2`  
+**Date:** 2026-10-02<br>
+**Branch:** `arena/01a0fc76-index-engine-v6-2`<br>
 **Master input:** user-pasted EFNAI V9.1.0.1 documentation. Older editions are treated as superseded wherever they conflict.
+
+## Checkout reconciliation note
+
+The initial sandbox snapshot contained only baseline `a8814bb`; after fetching the fixed Arena branch, the previously recorded Session 3 commit `070c422` was found and used as the branch base. The historical `122/122` test tally below is retained as recorded at Session 3; the full current suite was re-run in Session 4 and is reported in `docs/SESSION-4-REPORT.md`.
 
 ## Delivered
 

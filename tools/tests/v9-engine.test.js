@@ -1,326 +1,426 @@
 #!/usr/bin/env node
 /**
- * Functional test suite — Index Engine v9.1.0.1 (v9/index.html)
- *
- * Run:
- *   npm install jsdom
- *   node tools/tests/v9-engine.test.js
- *
- * Exercises the engine's exported surface inside a real DOM. Covers every
- * invariant named in docs/SPEC-AUDIT.md §1–§4, plus the regressions that
- * V6.2 exhibited (C-01 … C-13).
+ * Session 4 verification — Index Engine v9.1.0.1 browser SPA.
+ * Run with: npm run test:v9
  */
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
+const assert = require('node:assert/strict');
+const { execFileSync } = require('node:child_process');
+const crypto = require('node:crypto');
+const { TextEncoder, TextDecoder } = require('node:util');
+const { webcrypto } = require('node:crypto');
 const { JSDOM, VirtualConsole } = require('jsdom');
+const { IDBFactory, IDBKeyRange } = require('fake-indexeddb');
 
 const target = process.argv[2] || path.join(__dirname, '..', '..', 'v9', 'index.html');
 const html = fs.readFileSync(target, 'utf8');
-
-const errors = [];
+const GENESIS = '0'.repeat(64);
+const runtimeErrors = [];
 const vc = new VirtualConsole();
-vc.on('jsdomError', e => {
-  // jsdom's CSSOM does not parse Tailwind v4's modern @supports/@layer rules;
-  // those rules are browser-facing presentation, not application runtime errors.
-  if (e.type === 'css parsing') return;
-  errors.push('jsdomError: ' + e.message);
+vc.on('jsdomError', error => {
+  if (error.type === 'css parsing') return;
+  runtimeErrors.push('jsdomError: ' + error.message);
 });
-vc.on('error', e => errors.push('console.error: ' + e));
+vc.on('error', error => runtimeErrors.push('console.error: ' + error));
 
-const dom = new JSDOM(html, {
-  url: 'http://localhost/v9/index.html',
-  runScripts: 'dangerously',
-  pretendToBeVisual: true,
-  virtualConsole: vc,
-});
-const { window } = dom;
-const E = window.IndexEngine;
-
-const T = [];
-const ok = (c, m) => T.push([c ? 'PASS' : 'FAIL', m]);
-const eq = (a, b, m) => T.push([a === b ? 'PASS' : 'FAIL', `${m}  (got ${JSON.stringify(a)}, want ${JSON.stringify(b)})`]);
-const sec = s => T.push(['SEC', s]);
-
-/* ── boot / single-file deployment contract ───────────────────────────── */
-ok(!/cdn\.tailwindcss\.com|<script[^>]+src=/i.test(html), 'core SPA has no runtime CDN/script dependency');
-ok(/<style id="tailwind-generated">[\s\S]{1000,}<\/style>/.test(html), 'Tailwind CSS is inlined into the runnable HTML');
-ok(/<link rel="manifest" href="\.\/manifest\.webmanifest">/.test(html), 'optional PWA manifest uses a same-origin relative URL');
-ok(!!E, 'engine exports window.IndexEngine');
-ok(errors.length === 0, 'boots with zero runtime errors' + (errors.length ? ' → ' + errors.join(' | ') : ''));
-
-/* ── 1. nomenclature contract ─────────────────────────────────────────── */
-sec('§1 Nomenclature contract');
-eq(E.ARITY, 12, 'INV-NOM-07 semantic arity is exactly 12');
-eq(E.TOTAL_FIELDS, 14, 'field layout is 14 dot-fields (DATE occupies 3 — the delimiter subtlety)');
-eq(E.LAYOUT.length, 12, 'layout maps 12 semantic parts onto 14 fields');
-eq(E.LAYOUT[0].width, 3, 'DATE has width 3');
-ok(E.LAYOUT.slice(1).every(l => l.width === 1), 'every slot after DATE has width 1');
-eq(E.SLOTS.length, 12, 'twelve named slots');
-eq(E.SLOTS[E.SLOTS.length - 1], 'id', 'INV-NOM-03 ID is terminal');
-ok(E.SEGMENTS.slice(0, 8).every(s => s.group === 'base'), 'INV-NOM-02 base slots occupy 1–8');
-ok(E.SEGMENTS.slice(8, 11).every(s => s.group === 'ext'), 'extension slots occupy 9–11');
-eq(E.SEGMENTS[11].group, 'id', 'slot 12 is ID');
-
-const sample = () => ({
-  date: '2024.03.11', cs: 'SmithVWong', type: 'TRAN', title: 'DepositionOfWong',
-  ver: 'v01', priv: 'PRIV', origin: 'OPPS', author: 'RWILLIAMS',
-  e1: 'ABC000123', e2: 'NA', e3: 'NA', id: 'FILE000001',
-});
-eq(E.buildName(sample()).split('.').length, 14, 'buildName emits exactly 14 dot-fields');
-eq(E.parseName(E.buildName(sample())).date, sample().date, 'DATE round-trips as a single semantic part');
-eq(E.parseName(E.buildName(sample())).__arity, 12, 'parsed semantic arity is 12');
-eq(E.parseName(E.buildName(sample())).__conformant, true, 'INV-NOM-06 built name parses as conformant');
-eq((sample().date.match(/\./g) || []).length, 2, 'DATE is the sanctioned exception: it embeds the delimiter twice');
-ok(E.SEGMENTS.filter(s => s.key !== 'date').every(s => !s.re.test('a.b')), 'no slot other than DATE may contain the delimiter');
-
-/* ── 2. round-trip property test ──────────────────────────────────────── */
-sec('INV-NOM-06 / INV-NOM-09  round-trip property test (10 000 names)');
-{
-  const pool = ['A', 'B', 'Depo', 'Contract', 'Wong', 'Smith', 'Exhibit', 'X', 'Y', 'Zed'];
-  let fail = 0;
-  for (let i = 0; i < 10000; i++) {
-    const p = sample();
-    p.cs = 'Case' + (i % 97);
-    p.title = pool[i % pool.length] + (i % 41);
-    p.type = ['TRAN', 'CONT', 'PLEA', 'EXHB', 'DOCU', 'PDFX'][i % 6];
-    p.ver = i % 3 === 0 ? 'v0' + ((i % 9) + 1) : ['FIN', 'EXE', 'DRAF', 'AMND'][i % 4];
-    p.e1 = i % 2 ? 'NA' : 'B' + i;
-    const back = E.parseName(E.buildName(p));
-    if (!back.__conformant || E.SLOTS.some(k => back[k] !== p[k])) fail++;
-  }
-  eq(fail, 0, '10 000 round-trips: parse(build(x)) === x with zero divergence');
-}
-
-/* ── 3. G-01 / G-03 — the two operator confirmations ──────────────────── */
-sec('§0.1 Operator confirmations');
-eq(E.disambiguate(sample(), []).changed, false, 'G-01 no suffix when the tuple is unique');
-
-{
-  // build a ledger of 4 identical tuples
-  const L = [];
-  for (let k = 1; k <= 4; k++) {
-    const d = E.disambiguate(sample(), L);
-    const id = 'FILE' + String(k).padStart(6, '0');
-    const withId = Object.assign({}, d.parts, { id });
-    L.push({ id, parts: withId, newName: E.buildName(withId) });
-  }
-  const titles = L.map(r => r.parts.title);
-  eq(titles[0], 'DepositionOfWong', 'first occurrence keeps the bare title');
-  eq(titles[1], 'DepositionOfWongPart2', 'G-01 second occurrence → Part2');
-  eq(titles[2], 'DepositionOfWongPart3', 'C-08 third occurrence → Part3 (V6.2 saturated)');
-  eq(titles[3], 'DepositionOfWongPart4', 'C-08 fourth occurrence → Part4');
-  ok(titles.slice(1).every(t => !t.includes('-')), 'G-01 suffix carries NO hyphen (README was wrong)');
-}
-
-{
-  const over = Object.assign(sample(), { title: 'A'.repeat(36) });
-  const v = E.validate(over);
-  ok(v.errors.some(e => e.code === 'TITLE_OVERFLOW'), 'G-03 36-char title fails validation');
-  ok(E.detectTriggers(over, { confidence: 1 }).includes('TITLE_OVERFLOW'), 'G-03 36-char title raises the SRQ trigger');
-  eq(E.validate(Object.assign(sample(), { title: 'A'.repeat(35) })).ok, true, 'G-03 35-char title is accepted (boundary)');
-}
-
-/* ── 4. deduplication semantics — C-08 / C-09 ─────────────────────────── */
-sec('§2 C-08 / C-09  deduplication');
-{
-  const L = [{ id: 'FILE000001', parts: sample(), newName: E.buildName(sample()) }];
-  eq(E.collisionCount(sample(), L), 1, 'INV-DUP-02 exact tuple collides');
-  eq(E.collisionCount(Object.assign(sample(), { title: 'DepositionOfWong2' }), L), 0, 'C-09 near-miss does NOT collide (substring bug closed)');
-  eq(E.collisionCount(Object.assign(sample(), { cs: 'SmithVWongX' }), L), 0, 'C-09 case near-miss does NOT collide');
-  eq(E.keyTuple(sample()).length, 11, 'dedup tuple covers the 11 non-ID slots');
-}
-
-/* ── 5. ID allocation — C-06 / INV-ID-01 ──────────────────────────────── */
-sec('§2 C-06  ID allocation');
-eq(E.nextId([]), '000001', 'empty ledger → 000001');
-eq(E.nextId([{ id: 'FILE000001' }, { id: 'FILE000042' }, { id: 'FILE000007' }]), '000043', 'INV-ID-01 max+1, order independent');
-eq(E.nextId([{ id: 'FILE000900' }]), '000901', 'INV-ID-01 lost counter cache cannot reissue an ID');
-eq(E.nextIdFull([]), 'FILE000001', 'nextIdFull prefixes FILE');
-
-/* ── 6. sanitizer — U-04 / U-08 / U-09 / U-10 ─────────────────────────── */
-sec('§3 Sanitizer');
-eq(E.sanitize('cs', 'José Müller'), 'JoseMuller', 'U-04 diacritics fold to ASCII');
-eq(E.sanitize('cs', 'Smith v Wong'), 'SmithVWong', 'multi-word PascalCase fold');
-ok(!/[<>:"/\\|?*]/.test(E.sanitize('title', 'A<B>C:D"E/F\\G|H?I*J')), 'U-08 illegal OS characters stripped');
-eq(E.sanitize('cs', 'CON'), 'CON_', 'U-09 reserved device name CON guarded');
-eq(E.sanitize('cs', 'AUX'), 'AUX_', 'U-09 reserved device name AUX guarded');
-ok(!/[. ]$/.test(E.sanitize('cs', 'Smith ')), 'U-10 trailing space stripped');
-eq(E.sanitize('title', 'X'.repeat(80)).length, 35, 'title hard-truncates to the 35-char ceiling');
-eq(E.sanitize('e1', ''), 'NA', 'empty extension defaults to NA');
-eq(E.sanitize('ver', 'v1'), 'v01', 'version normalises v1 → v01');
-eq(E.sanitize('ver', 'final'), 'FIN', 'version canonicalises FINAL → FIN');
-eq(E.sanitize('ver', 'executed'), 'EXE', 'version canonicalises EXECUTED → EXE');
-eq(E.sanitize('ver', 'Amended'), 'AMND', 'version canonicalises Amended → AMND');
-eq(E.sanitize('date', '2024-3-1'), '2024.03.01', 'date normalises to YYYY.MM.DD');
-
-/* ── 7. hash chain — U-18 ─────────────────────────────────────────────── */
-sec('§3 U-18  hash-chained ledger');
-{
-  const G = '0'.repeat(64);
-  let prev = G;
-  const chain = [];
-  for (let c = 1; c <= 5; c++) {
-    const id = 'FILE' + String(c).padStart(6, '0');
-    const nm = E.buildName(Object.assign(sample(), { id, cs: 'Case' + c }));
-    const h = E.rowHash(prev, id, nm, c);
-    chain.push({ id, newName: nm, timestamp: c, prevHash: prev, hash: h });
-    prev = h;
-  }
-  eq(E.verifyChain(chain).ok, true, 'chain verifies when intact');
-
-  const tampered = JSON.parse(JSON.stringify(chain));
-  tampered[2].newName = tampered[2].newName.replace('Case3', 'Case3X');
-  const r1 = E.verifyChain(tampered);
-  eq(r1.ok, false, 'chain detects content tampering');
-  eq(r1.broken[0].id, 'FILE000003', 'tamper is localised to the edited row');
-
-  const reordered = JSON.parse(JSON.stringify(chain));
-  reordered.reverse();
-  eq(E.verifyChain(reordered).ok, false, 'chain detects reordering');
-
-  const deleted = JSON.parse(JSON.stringify(chain));
-  deleted.splice(1, 1);
-  eq(E.verifyChain(deleted).ok, false, 'chain detects row deletion');
-}
-
-/* ── 8. SHA-256 known-answer tests ────────────────────────────────────── */
-sec('§3 SHA-256 known-answer tests');
-eq(E.sha256(''), 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'SHA-256 empty string');
-eq(E.sha256('abc'), 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad', 'SHA-256 "abc"');
-eq(E.sha256('abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq'),
-   '248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1', 'SHA-256 56-byte block boundary');
-eq(E.sha256('a'.repeat(1000)).length, 64, 'SHA-256 1000 bytes → 64 hex chars');
-eq(E.sha256('The quick brown fox jumps over the lazy dog'),
-   'd7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592', 'SHA-256 pangram');
-
-/* ── 9. migration — C-13 / INV-MIG-01 ─────────────────────────────────── */
-sec('§4.1 C-13  arity-9 → arity-12 migration');
-{
-  const v62 = [{
-    id: 'FILE000001', oldName: 'IMG_1.pdf',
-    newName: '2024.03.11.SmithVWong.TRAN.Deposition.v01.PRIV.OPPS.RWILLIAMS.FILE000001',
-    timestamp: '2024-03-11T00:00:00Z',
-  }];
-  const m = E.migrateV62(v62);
-  eq(m.committed.length, 1, 'arity-9 row migrates');
-  eq(m.committed[0].newName.split('.').length, 14, 'migrated name has 14 dot-fields / 12 semantic parts');
-  eq(m.committed[0].id, 'FILE000001', 'INV-MIG-01 ID preserved verbatim');
-  eq(E.parseName(m.committed[0].newName).__conformant, true, 'migrated name is conformant');
-  eq(E.parseName(m.committed[0].newName).date, '2024.03.11', 'migrated DATE reassembles from 3 fields');
-
-  const idem = E.migrateV62([{ newName: m.committed[0].newName }]);
-  eq(idem.alreadyConformant, 1, 'C-13 migration is idempotent');
-  eq(idem.committed.length, 0, 'idempotent run emits no duplicate rows');
-
-  const over = E.migrateV62([{ newName: '2024.03.11.SmithVWong.TRAN.' + 'A'.repeat(40) + '.v01.PRIV.OPPS.RW.FILE000002' }]);
-  eq(over.queued.length, 1, 'C-13 over-length migrated title is QUEUED, not truncated');
-  eq(over.queued[0].trigger, 'TITLE_OVERFLOW', 'queued as TITLE_OVERFLOW');
-
-  const junk = E.migrateV62([{ newName: 'a.b.c' }]);
-  eq(junk.queued[0].trigger, 'ARITY_OVERFLOW', 'unrecognised arity is quarantined');
-
-  const ext = E.migrateV62([{ newName: '2024.03.11.Case.TRAN.Title.v01.PRIV.CLNT.RW.EXT1.EXT2.EXT3.FILE000003' }]);
-  eq(ext.alreadyConformant, 1, 'arity-12 rebuilt to 14 fields is recognised as conformant');
-
-  // V6.2 could carry 0..n dynamic extensions; 1-3 must map into the standing slots
-  const oneExt = E.migrateV62([{ newName: '2024.03.11.Case.TRAN.Title.v01.PRIV.CLNT.RW.BATES001.FILE000004' }]);
-  eq(oneExt.committed.length, 1, 'V6.2 with 1 dynamic extension migrates');
-  eq(oneExt.committed[0].parts.e1, 'BATES001', 'dynamic extension lands in E1');
-  eq(oneExt.committed[0].parts.e2, 'NA', 'unused E2 defaults to NA');
-
-  const fourExt = E.migrateV62([{ newName: '2024.03.11.Case.TRAN.Title.v01.PRIV.CLNT.RW.A.B.C.D.FILE000005' }]);
-  eq(fourExt.queued.length, 1, 'U-22 four extensions exceed capacity → quarantined');
-  eq(fourExt.queued[0].trigger, 'ARITY_OVERFLOW', 'surplus extensions raise ARITY_OVERFLOW');
-}
-
-/* ── 10. local extractor (zero-credential ingestion path) ─────────────── */
-sec('§3 Local extraction — the key-independent ingress path');
-{
-  const a = E.localExtract({ name: '2024-03-11 Smith v Wong Deposition Transcript RWILLIAMS FINAL.pdf', type: 'application/pdf', size: 1024 });
-  eq(a.date, '2024.03.11', 'reads an ISO-ish date from the filename');
-  eq(a.cs, 'SmithVWong', 'reads "X v Y" as the case');
-  eq(a.type, 'TRAN', 'classifies a transcript');
-  eq(a.ver, 'FIN', 'detects FINAL');
-  ok(a.confidence > 0.5, 'confidence exceeds the review threshold for a rich filename');
-
-  eq(E.localExtract({ name: '03-04-2024 Contract Acme.pdf', type: 'application/pdf', size: 1 }).ambiguous, true, 'U-02 ambiguous MM/DD↔DD/MM flagged');
-  eq(E.localExtract({ name: 'scan001.pdf', type: 'application/pdf', size: 1 }).date, null, 'U-01 missing date is reported as null, never invented');
-  eq(E.localExtract({ name: 'ACME v Zenith Medical Bills CONFIDENTIAL.xlsx', type: 'application/vnd.ms-excel', size: 1 }).priv, 'CONF', 'privilege inferred from CONFIDENTIAL');
-  const low = E.localExtract({ name: 'img_4471.jpg', type: 'image/jpeg', size: 1 });
-  ok(E.detectTriggers(low, { confidence: low.confidence }).length > 0, 'an uninformative filename raises at least one SRQ trigger');
-}
-
-/* ── 11. end-to-end: commit × 30 with collisions, then verify ─────────── */
-sec('§4 End-to-end pipeline');
-{
-  const S = E.getState();
-  const before = S.ledger.length;
-  const G = '0'.repeat(64);
-  const mk = i => {
-    const p = Object.assign({}, sample(), { cs: 'Case' + i, title: i % 3 === 0 ? 'DepositionOfWong' : 'Title' + i, id: '' });
-    const d = E.disambiguate(p, S.ledger);
-    const id = E.nextIdFull(S.ledger);
-    const withId = Object.assign({}, d.parts, { id });
-    const name = E.buildName(withId);
-    const prev = S.ledger.length ? S.ledger[S.ledger.length - 1].hash : G;
-    const ts = Date.now() + i;
-    S.ledger.push({ id, oldName: 'IMG_' + i + '.pdf', newName: name, parts: withId, timestamp: ts, prevHash: prev, hash: E.rowHash(prev, id, name, ts), provenance: 'test' });
-  };
-  for (let i = 0; i < 30; i++) mk(i);
-  eq(S.ledger.length - before, 30, '30 records committed');
-  eq(E.verifyChain(S.ledger).ok, true, 'chain verifies across the whole committed ledger');
-
-  const ids = S.ledger.map(r => r.id);
-  eq(new Set(ids).size, ids.length, 'INV-ID-01 every ID is unique');
-
-  const names = S.ledger.map(r => r.newName);
-  eq(new Set(names).size, names.length, 'every newName is unique (dedup engine holds under load)');
-
-  ok(S.ledger.every(r => E.parseName(r.newName).__conformant), 'every committed name is conformant');
-  ok(S.ledger.every(r => E.parseName(r.newName).__fields === 14), 'every committed name has exactly 14 fields');
-  ok(S.ledger.every(r => r.newName.length <= 180), 'INV-NOM-08 every name is within the 180-char budget');
-  ok(S.ledger.every(r => !/[<>:"/\\|?*]/.test(r.newName)), 'U-08 no committed name contains an OS-illegal character');
-}
-
-/* ── 12. in-page suite ────────────────────────────────────────────────── */
-sec('§5 In-page self-test suite');
-{
-  const r = E.runSelfTest();
-  eq(r.pass, r.total, `in-page invariant suite: ${r.pass}/${r.total}`);
-}
-
-/* ── 13. UI integration ───────────────────────────────────────────────── */
-sec('UI integration');
-{
-  const doc = window.document;
-  eq(doc.querySelectorAll('.tab').length, 5, 'five tabs render');
-  eq(doc.querySelectorAll('[data-slot]').length, 11, '11 editable slots render (ID is engine-assigned)');
-
-  doc.getElementById('btnPrefill').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-  const preview = doc.getElementById('previewText').textContent;
-  eq(preview.split('.').length, 14, 'prefilled preview renders 14 dot-fields / 12 semantic parts');
-  eq(preview.indexOf('0000.00.00') < 0, true, 'prefill uses today\'s LOCAL date, not an ISO UTC slice');
-
-  const tabs = ['ingest', 'queue', 'ledger', 'settings', 'constructor'];
-  let visOk = true;
-  tabs.forEach(t => {
-    doc.querySelector(`.tab[data-tab="${t}"]`).dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-    const view = doc.querySelector(`[data-view="${t}"]`);
-    if (view.classList.contains('hidden')) visOk = false;
+function appWithSeed(seed = {}, indexedDBFactory = new IDBFactory()) {
+  const dom = new JSDOM(html, {
+    url: 'http://localhost/v9/index.html',
+    runScripts: 'dangerously',
+    pretendToBeVisual: true,
+    virtualConsole: vc,
+    beforeParse(window) {
+      Object.defineProperty(window, 'crypto', { configurable: true, value: webcrypto });
+      window.TextEncoder = TextEncoder;
+      window.TextDecoder = TextDecoder;
+      if (indexedDBFactory) {
+        Object.defineProperty(window, 'indexedDB', { configurable: true, value: indexedDBFactory });
+        window.IDBKeyRange = IDBKeyRange;
+      } else {
+        Object.defineProperty(window, 'indexedDB', { configurable: true, value: undefined });
+      }
+      for (const [key, value] of Object.entries(seed)) {
+        window.localStorage.setItem(key, JSON.stringify(value));
+      }
+    },
   });
-  ok(visOk, 'every tab switches its view to visible');
-  eq(doc.querySelectorAll('[data-view]:not(.hidden)').length, 1, 'exactly one view is visible at a time');
+  return dom;
 }
 
-/* ── report ───────────────────────────────────────────────────────────── */
-console.log('\n  INDEX ENGINE v9.1.0.1 — INVARIANT TEST SUITE\n  ' + '─'.repeat(74));
-let fails = 0;
-for (const [s, m] of T) {
-  if (s === 'SEC') { console.log(`\n  ── ${m}`); continue; }
-  if (s === 'FAIL') fails++;
-  console.log(`  ${s === 'PASS' ? '✅' : '❌'}  ${m}`);
+const checks = [];
+function check(label, fn) {
+  return Promise.resolve().then(fn).then(
+    () => checks.push(['PASS', label]),
+    error => checks.push(['FAIL', label + ' — ' + (error && error.stack || error)]),
+  );
 }
-const total = T.filter(x => x[0] !== 'SEC').length;
-console.log('\n  ' + '─'.repeat(74));
-console.log(`  ${total - fails}/${total} passed` + (errors.length ? `\n  runtime errors: ${errors.join(' | ')}` : ''));
-process.exit(fails ? 1 : 0);
+function canonical(id = 'FILE00000001', overrides = {}) {
+  return Object.assign({
+    date: '2024.03.11', cs: 'SmithVWong', type: 'TRAN', type2: 'NA',
+    title: 'DepositionOfWong', ver: 'FINAL', priv: 'PRIV', priv2: 'NA',
+    origin: 'OPPS', origin2: 'NA', author: 'RWilliams', id,
+  }, overrides);
+}
+function digest(text) {
+  return crypto.createHash('sha256').update(text).digest('hex');
+}
+
+async function run() {
+  const sharedIDB = new IDBFactory();
+  const dom = appWithSeed({}, sharedIDB);
+  const { window } = dom;
+  const E = window.IndexEngine;
+  let restoreEnvelope = null;
+  let restoreSnapshot = null;
+  try {
+    await check('single-file SPA exports the engine and waits for storage hydration', async () => {
+      assert.ok(E);
+      assert.equal(await E.ready, true);
+      assert.equal(documentValue(window, 'aria-busy'), 'false');
+      assert.equal(E.Store.mode(), 'IndexedDB');
+      assert.doesNotMatch(html, /cdn\.tailwindcss\.com|<script[^>]+src=/i);
+      assert.match(html, /<style id="tailwind-generated">[\s\S]{1000,}<\/style>/);
+    });
+
+    await check('V9.1.0.1 semantic order, 12 parts, 14 dot-fields, and file extensions', () => {
+      assert.equal(E.ARITY, 12);
+      assert.deepEqual(Array.from(E.SLOTS), ['date','cs','type','type2','title','ver','priv','priv2','origin','origin2','author','id']);
+      const parts = canonical();
+      const base = E.buildName(parts);
+      assert.equal(base.split('.').length, 14);
+      assert.equal(E.parseName(base).__conformant, true);
+      assert.equal(E.buildFilename(parts, 'tar.gz'), base + '.tar.gz');
+      assert.equal(E.parseName(base + '.tar.gz').__extension, 'tar.gz');
+    });
+
+    await check('NA is accepted only in TYPE2, PRIV2, and ORIGIN2', () => {
+      assert.equal(E.validate(canonical()).ok, true);
+      assert.equal(E.validate(canonical('FILE00000001', { type: 'NA' })).ok, false);
+      assert.equal(E.validate(canonical('FILE00000001', { author: 'NA' })).ok, false);
+    });
+
+    await check('10,000 valid records round-trip without field drift', () => {
+      const types = ['TRAN','PLDG','VOCH','LEAS','MEDC'];
+      const vers = ['v01','FINAL','DRAFT','REV','EXE'];
+      for (let i = 0; i < 10000; i++) {
+        const parts = canonical('FILE' + String(i + 1).padStart(8, '0'), {
+          cs: 'Case' + (i % 91) + 'Matter', type: types[i % types.length],
+          type2: i % 2 ? 'NA' : 'SCAN', title: 'ArchiveTitle' + (i % 97),
+          ver: vers[i % vers.length], priv2: i % 3 ? 'NA' : 'PII',
+          origin2: i % 2 ? 'NA' : 'HFGD',
+        });
+        const parsed = E.parseName(E.buildName(parts));
+        assert.equal(parsed.__conformant, true, 'record ' + i);
+        for (const slot of E.SLOTS) assert.equal(parsed[slot], parts[slot], slot + ' in record ' + i);
+      }
+    });
+
+    await check('titles are preserved and routed to review instead of clipped', () => {
+      const long = 'L'.repeat(48);
+      assert.equal(E.sanitize('title', long), long);
+      assert.ok(E.detectTriggers(canonical('FILE00000001', { title: long }), { confidence: 1 }).includes('TITLE_OVERFLOW'));
+      assert.equal(E.migrateV62([{ newName: '2024.03.11.SmithVWong.TRAN.' + long + '.v01.PRIV.OPPS.RWilliams.FILE00000002' }]).queued[0].parts.title, long);
+    });
+
+    await check('duplicate naming uses Part2 without a hyphen and re-tests collisions', () => {
+      const base = canonical();
+      const existing = [
+        { parts: base },
+        { parts: Object.assign({}, base, { title: 'DepositionOfWongPart2' }) },
+      ];
+      assert.equal(E.disambiguate(base, existing).parts.title, 'DepositionOfWongPart3');
+      assert.ok(!E.disambiguate(base, existing).parts.title.includes('-'));
+    });
+
+    await check('rename-script paths are safely quoted for bash and batch output', () => {
+      const hostile = "name'; printf injected; $(printf still-data) `echo safe` $PATH";
+      const script = "printf '%s' " + E.bashQuote(hostile);
+      assert.equal(execFileSync('bash', ['-c', script], { encoding: 'utf8' }), hostile);
+      assert.equal(E.batchQuote('percent%name.txt'), '"percent%%name.txt"');
+    });
+
+    await check('IDs use max+1, eight-digit formatting, and persistent high-water protection', () => {
+      assert.equal(E.nextId([], 42), '00000043');
+      assert.equal(E.nextIdFull([{ id: 'FILE00000015' }], 42), 'FILE00000043');
+      assert.throws(() => E.nextId([], 99999999), error => error.code === 'ID_EXHAUSTED');
+    });
+
+    await check('complete ledger and audit chains detect tampering without auto-repair', () => {
+      let prev = GENESIS;
+      const chain = [];
+      for (let i = 1; i <= 3; i++) {
+        const parts = canonical('FILE' + String(i).padStart(8, '0'), { cs: 'Case' + i });
+        const row = { id: parts.id, parts, newName: E.buildName(parts), timestamp: i,
+          chainVersion: 2, prevHash: prev, provenance: 'test', hash: '' };
+        row.hash = E.rowHash(prev, row);
+        prev = row.hash;
+        chain.push(row);
+      }
+      assert.equal(E.verifyChain(chain).ok, true);
+      const broken = structuredClone(chain);
+      broken[1].parts.cs = 'Tampered';
+      assert.equal(E.verifyChain(broken).ok, false);
+      assert.equal(E.verifyChain(E.upgradeHashChain(broken)).ok, false);
+      const audit = E.makeAuditEntry([], 'TEST', { value: 1 }, 1);
+      assert.equal(E.verifyAuditChain(audit).ok, true);
+      const tamperedAudit = structuredClone(audit);
+      tamperedAudit[0].detail.value = 2;
+      assert.equal(E.verifyAuditChain(tamperedAudit).ok, false);
+    });
+
+    await check('legacy V6.2 migration preserves IDs and queues title overflow', () => {
+      const legacy = [{ oldName: 'scan.pdf', newName: '2024.03.11.SmithVWong.TRAN.Deposition.v01.PRIV.OPPS.RWilliams.FILE000001' }];
+      const converted = E.migrateV62(legacy);
+      assert.equal(converted.committed.length, 1);
+      assert.equal(converted.committed[0].id, 'FILE000001');
+      assert.equal(E.parseName(converted.committed[0].newName).__conformant, true);
+      const over = E.migrateV62([{ newName: '2024.03.11.SmithVWong.TRAN.' + 'X'.repeat(42) + '.v01.PRIV.OPPS.RW.FILE000002' }]);
+      assert.equal(over.queued[0].trigger, 'TITLE_OVERFLOW');
+      assert.equal(over.queued[0].parts.title.length, 42);
+    });
+
+    await check('file-intake vault metadata detects edits and does not retain file bytes', () => {
+      const file = new window.File(['not persisted'], 'source.pdf', { type: 'application/pdf' });
+      const hash = digest('not persisted');
+      const record = E.makeVaultRecord(file, hash, { extension: 'pdf', sourceFamily: 'USER', sourceSpecific: 'NA' }, 1700000000000);
+      assert.equal(record.contentStored, false);
+      assert.equal(E.verifyVault([record]).ok, true);
+      const tampered = structuredClone(record);
+      tampered.fileSize += 1;
+      assert.equal(E.verifyVault([tampered]).ok, false);
+      assert.equal(JSON.stringify(record).includes('not persisted'), false);
+    });
+
+    await check('actual intake hashes file bytes, atomically persists metadata/audit, then drops the byte-bearing File reference', async () => {
+      const bytes = new TextEncoder().encode('EFNAI source bytes are not archived');
+      const source = {
+        name: '2024-03-11 Smith v Wong Transcript FINAL.pdf', size: bytes.byteLength,
+        type: 'application/pdf', arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+      };
+      const state = E.getState();
+      state.staged = [source];
+      await E.runExtraction();
+      assert.equal(state.staged.length, 0);
+      assert.equal(state.env.length, 1);
+      const expectedHash = digest(Buffer.from(bytes));
+      assert.equal(state.env[0].fileHash, expectedHash);
+      assert.equal(state.vault.at(-1).sha256, expectedHash);
+      assert.equal(state.vault.at(-1).contentStored, false);
+      assert.equal(E.verifyVault(state.vault).ok, true);
+      assert.ok(state.audit.some(event => event.op === 'INTAKE_HASH'));
+      assert.equal(JSON.stringify(state.vault).includes('EFNAI source bytes are not archived'), false);
+      assert.equal(Object.hasOwn(state.env[0], 'file'), false);
+    });
+
+    await check('append commits are atomic, concurrent IDs stay unique, and chains verify', async () => {
+      const commits = Array.from({ length: 5 }, (_, i) => E.commitRecord(canonical('', { cs: 'Matter' + i }), {
+        oldName: 'manual-' + i + '.pdf', extension: 'pdf', provenance: 'manual',
+      }));
+      const results = await Promise.all(commits);
+      assert.ok(results.every(result => result && result.row));
+      const state = E.getState();
+      const ids = state.ledger.map(row => row.id);
+      assert.equal(new Set(ids).size, ids.length);
+      assert.equal(state.ledger.length, 5);
+      assert.equal(E.verifyChain(state.ledger).ok, true);
+      assert.equal(E.verifyAuditChain(state.audit).ok, true);
+      assert.equal(E.Store.read(E.Store.K.idHighWater), 5);
+    });
+
+    await check('separate browser tabs serialize IndexedDB append transactions without ID or chain collisions', async () => {
+      const secondDom = appWithSeed({}, sharedIDB);
+      try {
+        const E2 = secondDom.window.IndexEngine;
+        assert.equal(await E2.ready, true);
+        await Promise.all([
+          E.commitRecord(canonical('', { cs: 'CrossTabOne' }), { oldName: 'tab-one.pdf', extension: 'pdf', provenance: 'manual' }),
+          E2.commitRecord(canonical('', { cs: 'CrossTabTwo' }), { oldName: 'tab-two.pdf', extension: 'pdf', provenance: 'manual' }),
+        ]);
+        const state = await E.Store.readMany([E.Store.K.ledger, E.Store.K.audit, E.Store.K.idHighWater]);
+        assert.equal(state[E.Store.K.ledger].length, 7);
+        assert.equal(new Set(state[E.Store.K.ledger].map(row => row.id)).size, 7);
+        assert.equal(E.verifyChain(state[E.Store.K.ledger]).ok, true);
+        assert.equal(E.verifyAuditChain(state[E.Store.K.audit]).ok, true);
+        assert.equal(state[E.Store.K.idHighWater], 7);
+      } finally {
+        secondDom.window.close();
+      }
+    });
+
+    await check('write transaction abort leaves every key unchanged', async () => {
+      const beforeSeq = E.Store.read(E.Store.K.seq, 0);
+      const beforeQueue = E.Store.read(E.Store.K.queue, []);
+      await assert.rejects(E.Store.transact([E.Store.K.seq, E.Store.K.queue], () => {
+        throw new Error('intentional abort');
+      }, 'test-abort'), /intentional abort/);
+      assert.equal(E.Store.read(E.Store.K.seq, 0), beforeSeq);
+      assert.deepEqual(E.Store.read(E.Store.K.queue, []), beforeQueue);
+    });
+
+    await check('queue resolution removes the item and records who/when in ledger and audit', async () => {
+      const parts = canonical('', { title: 'A'.repeat(38) });
+      const item = await E.enqueue('TITLE_OVERFLOW', parts, { chars: 38 }, { fileName: 'queue.pdf' });
+      const index = E.getState().queue.findIndex(row => row.queueId === item.queueId);
+      const fixed = Object.assign({}, parts, { title: 'ShortTitle' });
+      const result = await E.resolveQueue(index, 'shortened', { title: 'ShortTitle' }, fixed, false);
+      assert.ok(result && result.row);
+      assert.equal(E.getState().queue.some(row => row.queueId === item.queueId), false);
+      assert.equal(result.row.resolvedBy, 'operator');
+      assert.ok(Number.isFinite(result.row.resolvedAt));
+      assert.equal(E.verifyChain(E.getState().ledger).ok, true);
+      assert.equal(E.verifyAuditChain(E.getState().audit).ok, true);
+    });
+
+    await check('encrypted backup uses AES-GCM/PBKDF2, round-trips, and rejects wrong key or tampering', async () => {
+      const passphrase = 'Archive backup passphrase 2026';
+      const text = await E.encryptBackup(passphrase);
+      const envelope = JSON.parse(text);
+      assert.equal(envelope.format, 'EFNAI-V9-ENCRYPTED-BACKUP');
+      assert.equal(envelope.cipher, 'AES-256-GCM');
+      assert.equal(envelope.kdf, 'PBKDF2-SHA256');
+      assert.ok(envelope.iterations >= 600000);
+      assert.ok(envelope.salt && envelope.iv && envelope.keyId);
+      const payload = await E.decryptBackup(text, passphrase);
+      restoreEnvelope = text;
+      restoreSnapshot = payload;
+      assert.equal(payload.format, 'EFNAI-LEDGER-PAYLOAD');
+      assert.equal(payload.ledger.length, E.getState().ledger.length);
+      assert.equal(E.verifyChain(payload.ledger).ok, true);
+      await assert.rejects(E.decryptBackup(text, 'incorrect passphrase'), /authentication failed/i);
+      const modified = JSON.parse(text);
+      modified.ciphertext = (modified.ciphertext[0] === 'A' ? 'B' : 'A') + modified.ciphertext.slice(1);
+      await assert.rejects(E.decryptBackup(JSON.stringify(modified), passphrase), /authentication failed/i);
+    });
+
+    await check('restore replaces data only after confirmation, logs RESTORE, and never lowers the ID high-water mark', async () => {
+      assert.ok(restoreEnvelope && restoreSnapshot);
+      const beforeWater = E.Store.read(E.Store.K.idHighWater);
+      await E.commitRecord(canonical('', { cs: 'AddedAfterBackup' }), { oldName: 'later.pdf', extension: 'pdf', provenance: 'manual' });
+      const afterWater = E.Store.read(E.Store.K.idHighWater);
+      assert.ok(afterWater > restoreSnapshot.idHighWater);
+      window.confirm = () => true;
+      const restoreInput = window.document.getElementById('restoreFile');
+      Object.defineProperty(restoreInput, 'files', { configurable: true, value: [{ size: restoreEnvelope.length, text: async () => restoreEnvelope }] });
+      window.document.getElementById('restorePass').value = 'Archive backup passphrase 2026';
+      await E.restoreEncryptedBackup();
+      const state = E.getState();
+      assert.equal(state.ledger.length, restoreSnapshot.ledger.length);
+      assert.equal(state.audit[state.audit.length - 1].op, 'RESTORE');
+      assert.equal(E.verifyChain(state.ledger).ok, true);
+      assert.equal(E.verifyAuditChain(state.audit).ok, true);
+      assert.equal(E.Store.read(E.Store.K.idHighWater), Math.max(afterWater, restoreSnapshot.idHighWater));
+      assert.equal(E.nextIdFull(state.ledger, E.Store.read(E.Store.K.idHighWater)), 'FILE' + String(afterWater + 1).padStart(8, '0'));
+      assert.ok(beforeWater <= afterWater);
+    });
+
+    await check('Gemini key exists only in memory and can be explicitly cleared', () => {
+      const input = window.document.getElementById('apiKey');
+      input.value = 'test-key-never-persist';
+      window.document.getElementById('btnKeySet').click();
+      const state = E.getState();
+      assert.equal(state.apiKey, 'test-key-never-persist');
+      assert.ok(state.apiKeyExpiresAt > Date.now() && state.apiKeyExpiresAt <= Date.now() + 30 * 60 * 1000 + 1000);
+      for (let i = 0; i < window.localStorage.length; i++) {
+        const value = window.localStorage.getItem(window.localStorage.key(i)) || '';
+        assert.ok(!value.includes('test-key-never-persist'));
+      }
+      window.document.getElementById('btnKeyClear').click();
+      assert.equal(state.apiKey, null);
+    });
+
+    await check('self-test and UI integration pass after hydration', () => {
+      const self = E.runSelfTest();
+      assert.equal(self.pass, self.total);
+      const doc = window.document;
+      assert.equal(doc.querySelectorAll('.tab').length, 5);
+      assert.equal(doc.querySelectorAll('[data-slot]').length, 11);
+      doc.getElementById('btnPrefill').click();
+      const preview = doc.getElementById('previewText').textContent;
+      assert.equal(E.parseName(preview).__conformant, true);
+      assert.equal(E.parseName(preview).__extension, 'pdf');
+      for (const tab of ['ingest','queue','ledger','settings','constructor']) doc.querySelector('.tab[data-tab="' + tab + '"]').click();
+      assert.equal(doc.querySelectorAll('[data-view]:not(.hidden)').length, 1);
+    });
+
+    await check('no key or source-file contents appear in the encrypted payload', async () => {
+      const payload = await E.backupPayload();
+      const encoded = JSON.stringify(payload);
+      assert.ok(!encoded.includes('test-key-never-persist'));
+      assert.ok(!encoded.includes('not persisted'));
+      assert.equal(payload.ledger.length, E.getState().ledger.length);
+    });
+
+    const migrationSeed = {
+      'ie9.ledger': [{ id: 'FILE00000007', oldName: 'old.pdf',
+        newName: '2024.03.11.SmithVWong.TRAN.NA.Deposition.FINAL.PRIV.NA.OPPS.NA.RWilliams.FILE00000007',
+        timestamp: 1700000000000 }],
+      'ie9.queue': [{ trigger: 'TITLE_OVERFLOW', parts: canonical('', { title: 'A'.repeat(37) }), meta: { fileName: 'old-long.pdf' } }],
+      'ie9.srqseq': 0,
+    };
+    const migrationDom = appWithSeed(migrationSeed);
+    try {
+      const migratedEngine = migrationDom.window.IndexEngine;
+      await check('boot migrates legacy localStorage chains, queue IDs, and ID high-water without loss', async () => {
+        assert.equal(await migratedEngine.ready, true);
+        const state = migratedEngine.getState();
+        assert.equal(state.ledger.length, 1);
+        assert.equal(state.ledger[0].id, 'FILE00000007');
+        assert.equal(migratedEngine.verifyChain(state.ledger).ok, true);
+        assert.equal(state.queue.length, 1);
+        assert.equal(state.queue[0].queueId, 'SRQ-000001');
+        assert.equal(migratedEngine.Store.read(migratedEngine.Store.K.idHighWater), 7);
+        assert.equal(state.audit[state.audit.length - 1].op, 'STORE_MIGRATE');
+        assert.equal(migratedEngine.verifyAuditChain(state.audit).ok, true);
+      });
+    } finally {
+      migrationDom.window.close();
+    }
+
+    const fallbackDom = appWithSeed({
+      'ie9.state.journal': { version: 1, at: 1, values: { 'ie9.srqseq': 17 } },
+    }, null);
+    try {
+      const F = fallbackDom.window.IndexEngine;
+      await check('localStorage fallback replays its write journal and commits atomically', async () => {
+        assert.equal(await F.ready, true);
+        assert.equal(F.Store.mode(), 'localStorage fallback');
+        assert.equal(F.Store.read(F.Store.K.seq), 17);
+        assert.equal(fallbackDom.window.localStorage.getItem('ie9.state.journal'), null);
+        await F.Store.transact([F.Store.K.seq, F.Store.K.queue], snapshot => {
+          const values = {};
+          values[F.Store.K.seq] = snapshot[F.Store.K.seq] + 1;
+          values[F.Store.K.queue] = [{ queueId: 'SRQ-000018' }];
+          return { values, result: true };
+        }, 'fallback-test');
+        assert.equal(F.Store.read(F.Store.K.seq), 18);
+        assert.equal(F.Store.read(F.Store.K.queue)[0].queueId, 'SRQ-000018');
+        assert.equal(fallbackDom.window.localStorage.getItem('ie9.state.journal'), null);
+      });
+    } finally {
+      fallbackDom.window.close();
+    }
+
+    await check('runtime boots without JavaScript errors', () => assert.deepEqual(runtimeErrors, []));
+  } finally {
+    window.close();
+  }
+
+  console.log('\n  INDEX ENGINE V9.1.0.1 — SESSION 4 TESTS\n  ' + '─'.repeat(76));
+  let failures = 0;
+  for (const [status, label] of checks) {
+    if (status === 'FAIL') failures++;
+    console.log('  ' + (status === 'PASS' ? '✅ ' : '❌ ') + label.replace(/\n/g, '\n     '));
+  }
+  console.log('\n  ' + '─'.repeat(76));
+  console.log(`  ${checks.length - failures}/${checks.length} passed`);
+  if (failures) process.exitCode = 1;
+}
+function documentValue(window, name) {
+  return window.document.body.getAttribute(name);
+}
+
+run().catch(error => {
+  console.error(error);
+  process.exitCode = 1;
+});
