@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -50,6 +51,10 @@ assert.match(filePaths, /<cache-path name="share" path="shared\/"/);
 assert.doesNotMatch(filePaths, /<external-path/);
 await fs.access(path.join(androidRoot, 'gradlew'));
 await fs.access(path.join(androidRoot, 'gradlew.bat'));
+const wrapperProperties = await fs.readFile(path.join(androidRoot, 'gradle/wrapper/gradle-wrapper.properties'), 'utf8');
+assert.match(wrapperProperties, /distributionSha256Sum=ed1a8d686605fd7c23bdf62c7fc7add1c5b23b2bbc3721e661934ef4a4911d7c/);
+const wrapperJar = await fs.readFile(path.join(androidRoot, 'gradle/wrapper/gradle-wrapper.jar'));
+assert.equal(createHash('sha256').update(wrapperJar).digest('hex'), '7d3a4ac4de1c32b59bc6a4eb8ecb8e612ccd0cf1ae1e99f66902da64df296172');
 
 const iosRoot = path.join(appRoot, 'ios');
 const iosProject = await fs.readFile(path.join(iosRoot, 'App/App.xcodeproj/project.pbxproj'), 'utf8');

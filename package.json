@@ -9,16 +9,23 @@
     "serve": "node tools/static-server.mjs",
     "test:tce": "node tools/tests/terminal-engine.test.js",
     "test:v9": "node tools/tests/v9-engine.test.js",
+    "check:version": "node tools/check-version.mjs",
+    "check:workflows": "node tools/check-workflow-pins.mjs",
+    "lint:html": "html-validate v9/index.html tools/terminal-engine.html",
+    "lint": "npm run check:version && npm run check:workflows && npm run lint:html && npm test",
+    "check:build": "node tools/check-build.mjs",
     "build:spa": "tailwindcss -i tools/tailwind.css -o .tailwind.tmp.css --minify && node tools/inline-tailwind.mjs .tailwind.tmp.css v9/index.html",
     "build:terminal": "tailwindcss -i tools/terminal-tailwind.css -o .tailwind.tmp.css --minify && node tools/inline-tailwind.mjs .tailwind.tmp.css tools/terminal-engine.html"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.3.3",
     "fake-indexeddb": "^6.2.5",
+    "html-validate": "10.17.0",
     "jsdom": "^25.0.1",
-    "tailwindcss": "^4.3.3"
+    "tailwindcss": "^4.3.3",
+    "yaml": "2.9.1"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=20.19.0"
   }
 }

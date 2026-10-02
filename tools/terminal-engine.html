@@ -73,14 +73,14 @@
              style="background:rgba(7,11,20,.7);border:1px solid var(--stroke);color:var(--txt)">
     </div>
     <div id="shellToggle" class="flex rounded-lg overflow-hidden" style="border:1px solid var(--stroke)" role="tablist" aria-label="Shell">
-      <button data-shell="unix" class="shell-btn px-3 py-2 text-xs font-bold">bash / zsh</button>
-      <button data-shell="win"  class="shell-btn px-3 py-2 text-xs font-bold">PowerShell</button>
+      <button type="button" data-shell="unix" class="shell-btn px-3 py-2 text-xs font-bold">bash / zsh</button>
+      <button type="button" data-shell="win"  class="shell-btn px-3 py-2 text-xs font-bold">PowerShell</button>
     </div>
-    <button id="btnCopyRemaining" class="px-3 py-2 rounded-lg text-xs font-bold"
+    <button type="button" id="btnCopyRemaining" class="px-3 py-2 rounded-lg text-xs font-bold"
             style="background:rgba(56,189,248,.15);border:1px solid rgba(56,189,248,.35);color:#7dd3fc">Copy remaining</button>
-    <button id="btnReset" class="px-3 py-2 rounded-lg text-xs font-bold text-rose-300"
+    <button type="button" id="btnReset" class="px-3 py-2 rounded-lg text-xs font-bold text-rose-300"
             style="background:rgba(251,113,133,.1);border:1px solid rgba(251,113,133,.3)">Reset recipe</button>
-    <button id="btnPrint" class="px-3 py-2 rounded-lg text-xs font-bold text-slate-300"
+    <button type="button" id="btnPrint" class="px-3 py-2 rounded-lg text-xs font-bold text-slate-300"
             style="background:rgba(148,163,184,.1);border:1px solid var(--stroke)">Print</button>
   </div>
 </header>
@@ -155,7 +155,7 @@
 </div>
 
 <div id="toasts" class="fixed bottom-5 right-5 z-[100] flex flex-col gap-2 items-end no-print"></div>
-<textarea id="clipboardShim" class="fixed opacity-0 pointer-events-none" style="top:-9999px" aria-hidden="true"></textarea>
+<textarea id="clipboardShim" class="fixed opacity-0 pointer-events-none" style="top:-9999px" aria-hidden="true" tabindex="-1"></textarea>
 
 <script>
 "use strict";
@@ -1557,7 +1557,7 @@ function renderNav() {
   nav.innerHTML = RECIPES.map(function (r) {
     var done = r.steps.filter(function (s) { return isDone(r.id, s.id); }).length;
     var active = r.id === state.recipeId;
-    return '<button data-recipe="' + esc(r.id) + '" class="text-left rounded-xl px-3 py-2.5 transition-all flex items-start gap-3" ' +
+    return '<button type="button" data-recipe="' + esc(r.id) + '" class="text-left rounded-xl px-3 py-2.5 transition-all flex items-start gap-3" ' +
       'style="background:' + (active ? 'rgba(56,189,248,.12)' : 'transparent') + ';border:1px solid ' +
       (active ? 'rgba(56,189,248,.4)' : 'transparent') + '">' +
       '<span class="text-lg leading-none mt-0.5">' + r.icon + '</span>' +
@@ -1611,7 +1611,7 @@ function renderSteps() {
 
   if (!visible.length) {
     host.innerHTML = '<div class="glass rounded-2xl p-8 text-center text-sm text-slate-400">No steps match <span class="mono text-sky-300">' +
-      esc(state.query) + '</span>. <button id="clearQ" class="underline text-sky-400 ml-1">Clear filter</button></div>';
+      esc(state.query) + '</span>. <button type="button" id="clearQ" class="underline text-sky-400 ml-1">Clear filter</button></div>';
     var cq = document.getElementById('clearQ');
     if (cq) cq.addEventListener('click', function () { state.query = ''; document.getElementById('search').value = ''; renderSteps(); });
     return;
@@ -1639,7 +1639,7 @@ function renderSteps() {
     return '<article class="step glass rounded-2xl overflow-hidden fade-in' + (done ? ' done' : '') + '" data-step="' + esc(s.id) + '">' +
 
       '<header class="flex items-start gap-3 p-4 md:p-5">' +
-        '<button class="step-check shrink-0 w-7 h-7 rounded-lg grid place-items-center mono text-xs font-bold transition-all" ' +
+        '<button type="button" class="step-check shrink-0 w-7 h-7 rounded-lg grid place-items-center mono text-xs font-bold transition-all" ' +
           'data-check="' + esc(s.id) + '" title="Toggle complete" ' +
           'style="background:' + (done ? 'rgba(52,211,153,.2)' : 'rgba(7,11,20,.7)') + ';border:1px solid ' +
           (done ? 'rgba(52,211,153,.5)' : 'var(--stroke)') + ';color:' + (done ? '#34d399' : '#64748b') + '">' +
@@ -1660,9 +1660,9 @@ function renderSteps() {
             '<span class="mono text-[10px] font-bold uppercase tracking-widest text-slate-500">' +
               esc(onlyUnix ? 'bash / zsh  ·  macOS · Linux · WSL' : shellLabel) + '</span>' +
             '<span class="flex gap-2">' +
-              '<button class="copy-btn text-[10px] font-bold px-2.5 py-1 rounded-md" data-copy="' + esc(s.id) + '" ' +
+              '<button type="button" class="copy-btn text-[10px] font-bold px-2.5 py-1 rounded-md" data-copy="' + esc(s.id) + '" ' +
                 'style="background:rgba(56,189,248,.14);border:1px solid rgba(56,189,248,.3);color:#7dd3fc">Copy</button>' +
-              '<button class="copy-step-btn text-[10px] font-bold px-2.5 py-1 rounded-md" data-copystep="' + esc(s.id) + '" ' +
+              '<button type="button" class="copy-step-btn text-[10px] font-bold px-2.5 py-1 rounded-md" data-copystep="' + esc(s.id) + '" ' +
                 'style="background:rgba(148,163,184,.12);border:1px solid var(--stroke);color:#cbd5e1">Copy with context</button>' +
             '</span>' +
           '</div>' +

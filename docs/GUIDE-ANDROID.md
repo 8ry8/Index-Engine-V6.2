@@ -22,7 +22,7 @@ As of 2026-10-02, the pinned Capacitor 8 toolchain requires:
 - Node.js 22 or newer (`mobile/capacitor/package.json` enforces this).
 - Android Studio 2025.2.1 (Otter) or newer.
 - A JDK 21 installation. Use Android Studio's bundled JDK 21 for Studio and command-line Gradle.
-- Android SDK Platform 36 and Build-Tools 36.x installed in SDK Manager. The project has `minSdkVersion = 24`, `compileSdkVersion = 36`, and `targetSdkVersion = 36`.
+- Android SDK Platform 36 and Build-Tools 36.x installed in SDK Manager. The project has `minSdkVersion = 24`, `compileSdkVersion = 36`, and `targetSdkVersion = 36`. Gradle 8.14.3 and its wrapper JAR are pinned to published SHA-256 digests; the mobile verifier checks the wrapper JAR before build.
 
 Google Play requires new apps and updates to target API 36 beginning August 31, 2026. Capacitor's API 36 target is therefore deliberate; do not lower it to silence a build warning. Re-check Play policy at submission time.
 

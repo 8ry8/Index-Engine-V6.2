@@ -1,4 +1,4 @@
-name: Deploy EFNAI v9 SPA
+name: Deploy EFNAI V9.1.0.1 to GitHub Pages
 
 on:
   push:
@@ -7,28 +7,50 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: github-pages
   cancel-in-progress: true
 
 jobs:
+  build:
+    name: Validate and package the static site
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Run HTML, version, workflow-pin, and headless checks
+        run: npm run lint
+      - name: Rebuild and verify the committed single-file sources
+        run: npm run check:build
+      - name: Configure Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - name: Upload only the static V9 SPA and its PWA sidecars
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: v9
+
   deploy:
+    name: Deploy validated site
+    needs: build
+    runs-on: ubuntu-24.04
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+      deployments: write
     steps:
-      - name: Check out source
-        uses: actions/checkout@v4
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
-      - name: Upload the static, build-free SPA
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: v9
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

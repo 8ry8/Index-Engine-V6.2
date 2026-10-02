@@ -69,11 +69,11 @@
 <!-- ══════════ NAV ══════════ -->
 <nav class="np px-4 md:px-6 pt-4 max-w-[1600px] w-full mx-auto">
   <div class="glass rounded-2xl p-1.5 flex gap-1.5 overflow-x-auto scroll">
-    <button data-tab="constructor" class="tab active btn flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold mono">01 · Constructor</button>
-    <button data-tab="ingest"      class="tab btn flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold mono text-slate-400">02 · Ingestion</button>
-    <button data-tab="queue"       class="tab btn flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold mono text-slate-400">03 · Review Queue <span id="srqBadgeNav" class="ml-1 px-1.5 rounded" style="background:rgba(251,191,36,.2);color:#fcd34d">0</span></button>
-    <button data-tab="ledger"      class="tab btn flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold mono text-slate-400">04 · Ledger</button>
-    <button data-tab="settings"    class="tab btn flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold mono text-slate-400">05 · Schema &amp; Settings</button>
+    <button type="button" data-tab="constructor" class="tab active btn flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold mono">01 · Constructor</button>
+    <button type="button" data-tab="ingest"      class="tab btn flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold mono text-slate-400">02 · Ingestion</button>
+    <button type="button" data-tab="queue"       class="tab btn flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold mono text-slate-400">03 · Review Queue <span id="srqBadgeNav" class="ml-1 px-1.5 rounded" style="background:rgba(251,191,36,.2);color:#fcd34d">0</span></button>
+    <button type="button" data-tab="ledger"      class="tab btn flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold mono text-slate-400">04 · Ledger</button>
+    <button type="button" data-tab="settings"    class="tab btn flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold mono text-slate-400">05 · Schema &amp; Settings</button>
   </div>
 </nav>
 
@@ -85,12 +85,12 @@
       <div class="glass rounded-2xl p-5">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-sm font-bold uppercase tracking-widest text-sky-400">12-Part Constructor</h2>
-          <button id="btnPrefill" class="btn text-[11px] font-bold px-3 py-1.5 rounded-lg text-slate-300" style="background:rgba(148,163,184,.12);border:1px solid var(--stroke)">Load sample</button>
+          <button type="button" id="btnPrefill" class="btn text-[11px] font-bold px-3 py-1.5 rounded-lg text-slate-300" style="background:rgba(148,163,184,.12);border:1px solid var(--stroke)">Load sample</button>
         </div>
         <div id="slotHost" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"></div>
         <label class="block mt-4 rounded-xl p-3" style="background:rgba(7,11,20,.45);border:1px solid var(--stroke)">
           <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">File extension <span class="normal-case tracking-normal">— metadata, not a 13th part</span></span>
-          <input id="fileExtension" value="pdf" spellcheck="false" autocomplete="off" class="inp w-full rounded-lg px-2.5 py-2 mt-1 text-xs mono" placeholder="pdf or docx">
+          <input id="fileExtension" type="text" value="pdf" spellcheck="false" autocomplete="off" class="inp w-full rounded-lg px-2.5 py-2 mt-1 text-xs mono" placeholder="pdf or docx">
           <span class="text-[10px] text-slate-500 mt-1 block">Preserve the original suffix; examples: pdf, docx, tar.gz.</span>
         </label>
       </div>
@@ -109,10 +109,10 @@
         </div>
         <div id="previewSegs" class="flex flex-wrap gap-1 mt-3"></div>
         <div class="grid grid-cols-2 gap-2 mt-4">
-          <button id="btnCopyName" class="btn text-xs font-bold py-2.5 rounded-lg" style="background:rgba(56,189,248,.16);border:1px solid rgba(56,189,248,.4);color:#7dd3fc">Copy name</button>
-          <button id="btnCommit" class="btn text-xs font-bold py-2.5 rounded-lg" style="background:rgba(52,211,153,.18);border:1px solid rgba(52,211,153,.45);color:#6ee7b7">Commit</button>
+          <button type="button" id="btnCopyName" class="btn text-xs font-bold py-2.5 rounded-lg" style="background:rgba(56,189,248,.16);border:1px solid rgba(56,189,248,.4);color:#7dd3fc">Copy name</button>
+          <button type="button" id="btnCommit" class="btn text-xs font-bold py-2.5 rounded-lg" style="background:rgba(52,211,153,.18);border:1px solid rgba(52,211,153,.45);color:#6ee7b7">Commit</button>
         </div>
-        <button id="btnToQueue" class="btn w-full mt-2 text-xs font-bold py-2.5 rounded-lg" style="background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.4);color:#fcd34d">Send to Smart Review Queue</button>
+        <button type="button" id="btnToQueue" class="btn w-full mt-2 text-xs font-bold py-2.5 rounded-lg" style="background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.4);color:#fcd34d">Send to Smart Review Queue</button>
       </div>
 
       <div class="glass rounded-2xl p-5">
@@ -146,9 +146,9 @@
       </div>
       <div id="envHost" class="text-xs text-slate-400">No files staged.</div>
       <div class="flex flex-wrap gap-2 mt-4">
-        <button id="btnAnalyze" class="btn flex-1 min-w-[160px] text-xs font-bold py-2.5 rounded-lg" style="background:rgba(129,140,248,.18);border:1px solid rgba(129,140,248,.45);color:#a5b4fc">Run local extraction</button>
-        <button id="btnAI" class="btn flex-1 min-w-[160px] text-xs font-bold py-2.5 rounded-lg" style="background:rgba(192,132,252,.14);border:1px solid rgba(192,132,252,.4);color:#d8b4fe">Refine with Gemini</button>
-        <button id="btnEnvClear" class="btn text-xs font-bold py-2.5 px-4 rounded-lg text-rose-300" style="background:rgba(251,113,133,.1);border:1px solid rgba(251,113,133,.3)">Clear</button>
+        <button type="button" id="btnAnalyze" class="btn flex-1 min-w-[160px] text-xs font-bold py-2.5 rounded-lg" style="background:rgba(129,140,248,.18);border:1px solid rgba(129,140,248,.45);color:#a5b4fc">Run local extraction</button>
+        <button type="button" id="btnAI" class="btn flex-1 min-w-[160px] text-xs font-bold py-2.5 rounded-lg" style="background:rgba(192,132,252,.14);border:1px solid rgba(192,132,252,.4);color:#d8b4fe">Refine with Gemini</button>
+        <button type="button" id="btnEnvClear" class="btn text-xs font-bold py-2.5 px-4 rounded-lg text-rose-300" style="background:rgba(251,113,133,.1);border:1px solid rgba(251,113,133,.3)">Clear</button>
       </div>
     </div>
   </section>
@@ -174,13 +174,13 @@
     <div class="glass rounded-2xl p-5">
       <div class="flex flex-wrap items-center gap-2 mb-4">
         <h2 class="text-sm font-bold uppercase tracking-widest text-sky-400 mr-auto">Master Ledger</h2>
-        <button id="btnCSV"      class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(52,211,153,.16);border:1px solid rgba(52,211,153,.4);color:#6ee7b7">Export CSV</button>
-        <button id="btnSH"       class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(148,163,184,.12);border:1px solid var(--stroke);color:#cbd5e1">rename.sh</button>
-        <button id="btnBAT"      class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(148,163,184,.12);border:1px solid var(--stroke);color:#cbd5e1">rename.bat</button>
-        <button id="btnUNDO"     class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(148,163,184,.12);border:1px solid var(--stroke);color:#cbd5e1">undo.sh</button>
-        <button id="btnVerify"   class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(56,189,248,.14);border:1px solid rgba(56,189,248,.4);color:#7dd3fc">Verify chain</button>
-        <button id="btnMigrate"  class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(192,132,252,.14);border:1px solid rgba(192,132,252,.4);color:#d8b4fe">Import V6.2</button>
-        <button id="btnClearInputs" class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);color:#fcd34d" title="Clears only transient form and staged-file state; durable archive history is append-only.">Clear inputs</button>
+        <button type="button" id="btnCSV"      class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(52,211,153,.16);border:1px solid rgba(52,211,153,.4);color:#6ee7b7">Export CSV</button>
+        <button type="button" id="btnSH"       class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(148,163,184,.12);border:1px solid var(--stroke);color:#cbd5e1">rename.sh</button>
+        <button type="button" id="btnBAT"      class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(148,163,184,.12);border:1px solid var(--stroke);color:#cbd5e1">rename.bat</button>
+        <button type="button" id="btnUNDO"     class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(148,163,184,.12);border:1px solid var(--stroke);color:#cbd5e1">undo.sh</button>
+        <button type="button" id="btnVerify"   class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(56,189,248,.14);border:1px solid rgba(56,189,248,.4);color:#7dd3fc">Verify chain</button>
+        <button type="button" id="btnMigrate"  class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(192,132,252,.14);border:1px solid rgba(192,132,252,.4);color:#d8b4fe">Import V6.2</button>
+        <button type="button" id="btnClearInputs" class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);color:#fcd34d" title="Clears only transient form and staged-file state; durable archive history is append-only.">Clear inputs</button>
       </div>
       <div class="grid gap-4 md:grid-cols-4 mb-4">
         <div class="rounded-xl p-3" style="background:rgba(7,11,20,.6);border:1px solid var(--stroke)">
@@ -196,7 +196,7 @@
           <p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Conformance</p>
           <p id="kpiConf" class="mono text-xl font-bold text-emerald-400 mt-1">—</p></div>
       </div>
-      <input id="search" class="inp w-full rounded-lg px-3 py-2 text-xs mb-3" placeholder="Filter ledger by ID, filename, case, type…">
+      <input id="search" type="search" class="inp w-full rounded-lg px-3 py-2 text-xs mb-3" placeholder="Filter ledger by ID, filename, case, type…">
       <div class="rounded-xl overflow-hidden" style="border:1px solid var(--stroke);max-height:460px">
         <div class="overflow-y-auto scroll" style="max-height:460px">
           <table class="w-full text-left text-[11px]">
@@ -220,7 +220,7 @@
     <div class="glass rounded-2xl p-5">
       <div class="flex flex-wrap gap-2 items-center mb-3">
         <h2 class="text-sm font-bold uppercase tracking-widest text-sky-400 mr-auto">Integrity Vault</h2>
-        <button id="btnVerifyVault" class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(56,189,248,.14);border:1px solid rgba(56,189,248,.4);color:#7dd3fc">Verify metadata</button>
+        <button type="button" id="btnVerifyVault" class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(56,189,248,.14);border:1px solid rgba(56,189,248,.4);color:#7dd3fc">Verify metadata</button>
       </div>
       <p id="vaultStatus" class="text-[11px] text-slate-400 mb-3">Stores intake hash, filename, bytes, MIME type, source and timestamp; document bytes stay with you.</p>
       <div class="overflow-x-auto scroll"><table class="w-full text-left text-[10px] mono"><thead><tr class="text-slate-500"><th class="p-2">Original name</th><th class="p-2">SHA-256</th><th class="p-2">Bytes</th><th class="p-2">Source</th><th class="p-2">Captured</th></tr></thead><tbody id="vaultBody"></tbody></table></div>
@@ -233,13 +233,13 @@
           <label for="backupPass" class="block text-[10px] uppercase tracking-widest text-slate-500 mb-2">New backup passphrase (12+ characters)</label>
           <input id="backupPass" type="password" autocomplete="new-password" class="inp w-full rounded-lg px-3 py-2 text-xs mono" placeholder="Never saved by EFNAI">
           <input id="backupPassConfirm" type="password" autocomplete="new-password" class="inp w-full rounded-lg px-3 py-2 mt-2 text-xs mono" placeholder="Confirm backup passphrase">
-          <button id="btnEncryptedExport" class="btn mt-2 w-full py-2 rounded-lg text-xs font-bold" style="background:rgba(52,211,153,.16);border:1px solid rgba(52,211,153,.4);color:#6ee7b7">Download encrypted backup</button>
+          <button type="button" id="btnEncryptedExport" class="btn mt-2 w-full py-2 rounded-lg text-xs font-bold" style="background:rgba(52,211,153,.16);border:1px solid rgba(52,211,153,.4);color:#6ee7b7">Download encrypted backup</button>
         </div>
         <div class="rounded-xl p-3" style="background:rgba(7,11,20,.5);border:1px solid var(--stroke)">
           <label for="restoreFile" class="block text-[10px] uppercase tracking-widest text-slate-500 mb-2">Encrypted backup file</label>
           <input id="restoreFile" type="file" accept="application/json,.json" class="inp w-full rounded-lg px-3 py-2 text-xs">
           <input id="restorePass" type="password" autocomplete="current-password" class="inp w-full rounded-lg px-3 py-2 mt-2 text-xs mono" placeholder="Backup passphrase">
-          <button id="btnEncryptedRestore" class="btn mt-2 w-full py-2 rounded-lg text-xs font-bold" style="background:rgba(192,132,252,.16);border:1px solid rgba(192,132,252,.4);color:#d8b4fe">Verify and restore backup</button>
+          <button type="button" id="btnEncryptedRestore" class="btn mt-2 w-full py-2 rounded-lg text-xs font-bold" style="background:rgba(192,132,252,.16);border:1px solid rgba(192,132,252,.4);color:#d8b4fe">Verify and restore backup</button>
         </div>
       </div>
       <p id="backupStatus" class="text-[11px] mono mt-3 text-slate-500">No backup operation running.</p>
@@ -268,16 +268,16 @@
       <h2 class="text-sm font-bold uppercase tracking-widest text-sky-400 mb-2">Gemini Credential</h2>
       <p class="text-[11px] text-amber-300 mb-3"><strong>Security:</strong> the AI key is held in memory for at most 30 minutes, never in IndexedDB, localStorage, or an export. The local extractor works without a credential.</p>
       <div class="flex gap-2 flex-wrap">
-        <input id="apiKey" type="password" class="inp flex-1 min-w-[220px] rounded-lg px-3 py-2 text-xs mono" placeholder="API key · memory only · 30 min max">
-        <button id="btnKeySet" class="btn px-4 py-2 rounded-lg text-xs font-bold" style="background:rgba(56,189,248,.16);border:1px solid rgba(56,189,248,.4);color:#7dd3fc">Hold 30 min</button>
-        <button id="btnKeyClear" class="btn px-4 py-2 rounded-lg text-xs font-bold text-rose-300" style="background:rgba(251,113,133,.1);border:1px solid rgba(251,113,133,.3)">Forget</button>
+        <input id="apiKey" type="password" autocomplete="off" class="inp flex-1 min-w-[220px] rounded-lg px-3 py-2 text-xs mono" placeholder="API key · memory only · 30 min max">
+        <button type="button" id="btnKeySet" class="btn px-4 py-2 rounded-lg text-xs font-bold" style="background:rgba(56,189,248,.16);border:1px solid rgba(56,189,248,.4);color:#7dd3fc">Hold 30 min</button>
+        <button type="button" id="btnKeyClear" class="btn px-4 py-2 rounded-lg text-xs font-bold text-rose-300" style="background:rgba(251,113,133,.1);border:1px solid rgba(251,113,133,.3)">Forget</button>
       </div>
       <p id="keyState" class="text-[11px] mono mt-2 text-slate-500">no key held</p>
     </div>
     <div class="glass rounded-2xl p-5">
       <div class="flex items-center justify-between mb-3">
         <h2 class="text-sm font-bold uppercase tracking-widest text-sky-400">Invariant Self-Test</h2>
-        <button id="btnSelfTest" class="btn text-xs font-bold px-4 py-2 rounded-lg" style="background:rgba(52,211,153,.16);border:1px solid rgba(52,211,153,.4);color:#6ee7b7">Run suite</button>
+        <button type="button" id="btnSelfTest" class="btn text-xs font-bold px-4 py-2 rounded-lg" style="background:rgba(52,211,153,.16);border:1px solid rgba(52,211,153,.4);color:#6ee7b7">Run suite</button>
       </div>
       <div id="testHost" class="text-[11px] mono space-y-1 text-slate-500">Not yet run.</div>
     </div>
@@ -285,7 +285,7 @@
 </main>
 
 <div id="toasts" class="fixed bottom-5 right-5 z-[100] flex flex-col gap-2 items-end np"></div>
-<textarea id="shim" class="fixed opacity-0 pointer-events-none" style="top:-9999px" aria-hidden="true"></textarea>
+<textarea id="shim" class="fixed opacity-0 pointer-events-none" style="top:-9999px" aria-hidden="true" tabindex="-1"></textarea>
 
 <script>
 "use strict";
@@ -1600,7 +1600,7 @@ function renderStage(){
     return '<li class="flex items-center gap-2 text-slate-300"><span class="text-sky-400">▸</span>' +
       '<span class="truncate flex-1">'+esc(f.name)+'</span>' +
       '<span class="text-slate-600">'+(f.size/1024).toFixed(0)+' KB</span>' +
-      '<button data-unstage="'+i+'" class="text-rose-400 px-1">✕</button></li>';
+      '<button type="button" data-unstage="'+i+'" class="text-rose-400 px-1">✕</button></li>';
   }).join('') + '</ul>';
   host.querySelectorAll('[data-unstage]').forEach(function(b){
     b.addEventListener('click', function(){
@@ -1624,9 +1624,9 @@ function renderEnvelope(){
       '<div class="flex items-center gap-2 flex-wrap">' +
         '<span class="mono text-[11px] text-slate-300 flex-1 truncate">'+esc(e.name)+'</span>' + state +
         '<span class="mono text-[10px] text-slate-500">conf '+e.parts.confidence.toFixed(2)+'</span>' +
-        '<button data-adopt="'+i+'" class="btn text-[10px] font-bold px-2 py-1 rounded" style="background:rgba(56,189,248,.14);border:1px solid rgba(56,189,248,.35);color:#7dd3fc">Edit in constructor</button>' +
-        '<button data-commit="'+i+'" class="btn text-[10px] font-bold px-2 py-1 rounded" style="background:rgba(52,211,153,.14);border:1px solid rgba(52,211,153,.35);color:#6ee7b7">Commit</button>' +
-        '<button data-queue="'+i+'" class="btn text-[10px] font-bold px-2 py-1 rounded" style="background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.35);color:#fcd34d">Queue</button>' +
+        '<button type="button" data-adopt="'+i+'" class="btn text-[10px] font-bold px-2 py-1 rounded" style="background:rgba(56,189,248,.14);border:1px solid rgba(56,189,248,.35);color:#7dd3fc">Edit in constructor</button>' +
+        '<button type="button" data-commit="'+i+'" class="btn text-[10px] font-bold px-2 py-1 rounded" style="background:rgba(52,211,153,.14);border:1px solid rgba(52,211,153,.35);color:#6ee7b7">Commit</button>' +
+        '<button type="button" data-queue="'+i+'" class="btn text-[10px] font-bold px-2 py-1 rounded" style="background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.35);color:#fcd34d">Queue</button>' +
       '</div>' +
       '<p class="mono text-[11px] text-sky-300 mt-2 break-all">'+esc(preview)+'</p>' +
       (trig.length ? '<p class="text-[10px] text-amber-300/80 mt-1">'+esc((TRIGGERS[trig[0]]||{}).help||'')+'</p>' : '') +
@@ -1835,10 +1835,10 @@ function renderQueue(){
           '<span data-count="'+i+'" class="mono text-[10px] text-slate-500">'+titleVal.length+'/35</span>' +
         '</div>' : '') +
       '<div class="flex flex-wrap gap-2">' +
-        (isTitle ? '<button data-resolve="'+i+'" class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(52,211,153,.16);border:1px solid rgba(52,211,153,.4);color:#6ee7b7">Shorten &amp; resolve</button>' : '') +
-        '<button data-accept="'+i+'" class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(56,189,248,.14);border:1px solid rgba(56,189,248,.4);color:#7dd3fc">Accept as-is (override)</button>' +
-        '<button data-edit="'+i+'" class="btn text-[11px] font-bold px-3 py-2 rounded-lg text-slate-300" style="background:rgba(148,163,184,.12);border:1px solid var(--stroke)">Load into constructor</button>' +
-        '<button data-discard="'+i+'" class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(251,113,133,.1);border:1px solid rgba(251,113,133,.3);color:#fda4af">Discard</button>' +
+        (isTitle ? '<button type="button" data-resolve="'+i+'" class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(52,211,153,.16);border:1px solid rgba(52,211,153,.4);color:#6ee7b7">Shorten &amp; resolve</button>' : '') +
+        '<button type="button" data-accept="'+i+'" class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(56,189,248,.14);border:1px solid rgba(56,189,248,.4);color:#7dd3fc">Accept as-is (override)</button>' +
+        '<button type="button" data-edit="'+i+'" class="btn text-[11px] font-bold px-3 py-2 rounded-lg text-slate-300" style="background:rgba(148,163,184,.12);border:1px solid var(--stroke)">Load into constructor</button>' +
+        '<button type="button" data-discard="'+i+'" class="btn text-[11px] font-bold px-3 py-2 rounded-lg" style="background:rgba(251,113,133,.1);border:1px solid rgba(251,113,133,.3);color:#fda4af">Discard</button>' +
       '</div>' +
       '<p class="text-[10px] text-slate-600 mt-3">INV-SRQ-03 — leaving this queue requires an attributed decision (resolvedBy / resolvedAt).</p>' +
     '</article>';
@@ -2229,7 +2229,7 @@ function renderTax(){
     var editable=cat!=='versions';
     return '<section class="rounded-xl p-4" style="background:rgba(7,11,20,.45);border:1px solid var(--stroke)">' +
       '<h3 class="text-xs font-bold uppercase tracking-widest text-sky-400 mb-3">'+esc(labels[cat])+'</h3>' +
-      (editable?'<div class="flex gap-2 mb-3"><input id="'+cat+'Code" class="inp w-20 rounded px-2 py-1.5 text-[11px] mono uppercase" placeholder="CODE" maxlength="8"><input id="'+cat+'Desc" class="inp min-w-0 flex-1 rounded px-2 py-1.5 text-[11px]" placeholder="Meaning"><button data-tax-add="'+cat+'" class="btn px-3 rounded text-white text-xs font-bold" style="background:#0284c7">+</button></div>':'')+
+      (editable?'<div class="flex gap-2 mb-3"><input id="'+cat+'Code" class="inp w-20 rounded px-2 py-1.5 text-[11px] mono uppercase" placeholder="CODE" maxlength="8"><input id="'+cat+'Desc" class="inp min-w-0 flex-1 rounded px-2 py-1.5 text-[11px]" placeholder="Meaning"><button type="button" data-tax-add="'+cat+'" class="btn px-3 rounded text-white text-xs font-bold" style="background:#0284c7">+</button></div>':'')+
       '<ul id="tax-'+cat+'" class="space-y-1.5 max-h-64 overflow-y-auto scroll pr-1"></ul></section>';
   }).join('');
   cats.forEach(function(cat){
@@ -2239,7 +2239,7 @@ function renderTax(){
       return '<li class="flex items-center gap-2 rounded px-2 py-1.5 text-[11px]" style="background:rgba(7,11,20,.5)">' +
         '<span class="mono font-bold text-sky-300">'+esc(item.code)+'</span>' +
         '<span class="text-slate-400 flex-1 truncate">'+esc(item.desc)+'</span>' +
-        (fixed?'<span class="text-[9px] text-slate-600">MASTER</span>':'<button data-del="'+cat+':'+i+'" aria-label="Remove custom '+esc(item.code)+'" class="text-rose-400 px-1">✕</button>')+
+        (fixed?'<span class="text-[9px] text-slate-600">MASTER</span>':'<button type="button" data-del="'+cat+':'+i+'" aria-label="Remove custom '+esc(item.code)+'" class="text-rose-400 px-1">✕</button>')+
         '</li>';
     }).join('');
   });

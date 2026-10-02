@@ -1,7 +1,58 @@
-# Index-Engine-V6.2
+# Index Engine — EFNAI V9.1.0.1
 
-Short Description:
-Enterprise Legal AI Archiver (V6.2): Localized legal metadata engine for provenance, taxonomy scaling, and Gemini ingestion. SPA converts unstructured data into 9‑part filenames: YYYY.MM.DD.CASE.TYPE.TITLE.VER.PRIV.ORIGIN.AUTHOR.ID. Supports custom segments, client‑side processing, duplicate detection, local ledger, auto‑generated rename scripts.
+A browser-based legal-document nomenclature and local ledger tool. The current runnable application is the self-contained SPA at [`v9/index.html`](v9/index.html). The older root-level V6.2 page and `Index Engine V6.2 Code` are retained as historical artifacts; they are not the V9 policy or implementation.
 
-Full Description:
-⚖️ Enterprise Legal AI Archiver (V6.2)An enterprise-grade, localized metadata formatting engine. Architected specifically for strict legal provenance tracking, unlimited taxonomy scaling, and zero-server Google Gemini Multimodal ingestion.This repository hosts a robust Single Page Application (SPA) that acts as the ingress bridge between unstructured corporate/legal data dumps and intelligent Large Language Model (LLM) processing (such as NotebookLM). It ensures that every document is assigned a computationally rigid metadata string before it is analyzed by AI, guaranteeing perfect relational sorting, privilege compliance, and chronological tracking.🧩 The Unlimited Nomenclature ProtocolVersion 6.2 utilizes a strictly enforced, period-delimited naming string that inherently trains the AI on the context of the document.The foundational 9-part formula operates as follows:[YYYY.MM.DD].[CASE].[TYPE].[TITLE].[VER].[PRIV].[ORIGIN].[AUTHOR].[ID]Foundational Segments:Date (YYYY.MM.DD): ISO 8601 formatting guarantees OS-level chronological sorting.Case / Entity: The matter, client, or specific dispute name (Strictly CamelCase).Type: 4-6 letter structural code (e.g., TRAN for Transcript, CONT for Contract, MEDB for Medical Bills).Title: Human-readable subject matter (Strictly CamelCase, max 35 characters).Version: Draft status or finality (v01, FIN, EXE).Privilege Tag: Mandatory legal shield tag (PUBL, CONF, PRIV, SECR, PII).Originating Party: Source alignment/provenance for comparative LLM analysis (CLNT, OPPS, COUR).Author: First Initial + Last Name of the creator, witness, or opposing counsel.Archive ID (FILEXXXXXX): Unchanging sequential identifier mapping to the master ledger.Infinite Extensions:V6.2 allows for the seamless insertion of custom parameter segments. Need to track Bates Stamped Numbers, Judicial Venues, or Subpoena Issuers? You can dynamically inject endless [CUSTOM_SEGMENT] rules directly into the string, prior to the Archive ID.✨ Enterprise CapabilitiesMultimodal Vision Ingestion: Drag and drop batches of image or PDF evidence. Using the Google Gemini 2.5 Flash API, the dashboard performs heuristic analysis on the raw file contents to automatically identify dates, document types, and titles—formatting them directly into the 9-part nomenclature.Zero-Server Processing & Data Sovereignty: The tool operates entirely client-side. Processing is done via authenticated client-to-API requests. There is no middleman database storing your sensitive legal inputs.Duplicate/Collision Detection: Real-time array scanning references your generated strings against the master local ledger. Duplicates are flagged and automatically appended with sequential version control (-Part2) to prevent data loss.Persistent Local Ledger: Employs HTML5 localStorage as a primary session database. You may safely restart your browser; your generated archive ledger remains localized on the machine.Firebase Cloud Sync: (Optional) Add your personal Firebase Realtime Database URL to the settings page. The dashboard will silently push an encrypted backup of the Master Ledger to your private cloud storage whenever an edit is made.Auto-Generated Batch Scripts: Instead of manually renaming files in your OS finder, the dashboard generates downloadable .bat (Windows) and .sh (Mac/Linux) scripts. Simply drop the script into your file directory to instantly rename thousands of files locally based on your master ledger.🚀 Deployment & UsageSetupClone or download this repository.The core functionality is self-contained within index.html. No dependencies or build processes are required to run locally.Open index.html in any modern web browser (or host via GitHub Pages).Automated Ingestion (Vision AI)Authentication: Ensure you have configured a valid Gemini API Key within the runtime environment to utilize the Vision AI ingestion engine.Execution: Navigate to the Multimodal Batch tab. Drag and drop target files. Select "Run AI Data Analysis". The engine will return a proposed matrix of 9-part filenames for your approval.Ledger ExportNavigate to the Analytics & DB tab and select Export. This will compile your local history into an Excel-ready .csv file. The export utilizes a UTF-8 BOM injection, neutralizing formatting corruption across Microsoft Excel, Apple Numbers, and Google Sheets.Developed for legal compliance, data continuity, and LLM optimizati.n.
+## Normative specification
+
+The user-supplied Version 9.1.0.1 text is the master and supersedes older repository editions wherever they conflict. The accessible pasted text was reviewed; the body of section 13 (Addendum) and the PDF binary were not available in this checkout. No claim is made that those unseen materials were reviewed. See [`docs/SPEC-AUDIT.md`](docs/SPEC-AUDIT.md) for source limits, the current contract, conflicts, and unresolved policy questions.
+
+The canonical order is:
+
+```text
+DATE, CASE, TYPE, TYPE2, TITLE, VER, PRIV, PRIV2, ORIGIN, ORIGIN2, AUTHOR, ID
+```
+
+The filename representation has fourteen period-delimited fields because `DATE` is `YYYY.MM.DD`. `NA` is permitted only in `TYPE2`, `PRIV2`, and `ORIGIN2`. File extensions follow the archive ID and are not a nomenclature part. Mixed-case `CASE`, `TITLE`, and `AUTHOR` examples, eight-digit new `FILE` IDs, and version labels such as `FINAL`, `DRAFT`, `REV`, and `EXE` are supported. A title longer than 35 characters is preserved and sent to Smart Review Queue rather than silently truncated; duplicate disambiguation uses `Part2`, no hyphen.
+
+## Run the SPA
+
+No package install or build is required to use the app:
+
+1. Open `v9/index.html` in a current browser, or
+2. From the repository root, run `npm run serve` and open the printed local address.
+
+The app's CSS and JavaScript are inline. It does not require a runtime Tailwind CDN, cloud database, or external service. IndexedDB is primary storage; a one-time additive migration and compatibility fallback support legacy localStorage. The optional Gemini key exists in memory for up to 30 minutes; it is not persisted. Local encrypted backup/restore is supported; cloud sync is not implemented.
+
+## Terminal command engine
+
+[`tools/terminal-engine.html`](tools/terminal-engine.html) is a separate self-contained HTML tool that generates exact copy-paste commands for bash/zsh and PowerShell. It has inline CSS/JavaScript and no runtime external assets or build requirement.
+
+## Development and verification
+
+Requires Node.js 20.19 or newer for root development tooling (Node 22 is recommended); the Capacitor package requires Node.js 22 or newer. Install locked root dev dependencies and run the checks:
+
+```sh
+npm ci
+npm run lint
+npm run check:build
+```
+
+Optional maintenance-time CSS rebuilds (the released HTML remains runnable without these steps):
+
+```sh
+npm run build:spa
+npm run build:terminal
+```
+
+`npm run lint` checks cross-platform version alignment and full-SHA workflow pins, validates both shipped HTML artifacts, and runs the Terminal Engine and V9 headless suites. `npm run check:build` rebuilds both self-contained HTML files and fails if the committed artifacts are stale. The tests use jsdom and fake IndexedDB; they are not substitutes for manual verification on each supported browser or device.
+
+## Deployment and project plan
+
+- [`docs/GUIDE-SPA.md`](docs/GUIDE-SPA.md): static SPA deployment, Pages, HTTPS, security, and troubleshooting.
+- [`docs/GUIDE-ANDROID.md`](docs/GUIDE-ANDROID.md) and [`docs/GUIDE-IOS.md`](docs/GUIDE-IOS.md): Capacitor setup/build paths and documented Kotlin/Compose and SwiftUI alternatives.
+- [`docs/GUIDE-RELEASE.md`](docs/GUIDE-RELEASE.md): versioned release, checksum, and provenance verification.
+- [`.github/workflows/pages.yml`](.github/workflows/pages.yml) and [`.github/workflows/lint.yml`](.github/workflows/lint.yml): pinned, validated Pages deployment and cross-platform CI.
+- [`docs/SESSION-PLAN.md`](docs/SESSION-PLAN.md): segregated delivery sessions and acceptance gates.
+- Session reports: [`docs/SESSION-4-REPORT.md`](docs/SESSION-4-REPORT.md), [`docs/SESSION-5-REPORT.md`](docs/SESSION-5-REPORT.md), [`docs/SESSION-6-REPORT.md`](docs/SESSION-6-REPORT.md), and [`docs/SESSION-7-REPORT.md`](docs/SESSION-7-REPORT.md).
+
+Sessions 5 and 6 deliver the Android/iOS project skeletons; their native build gates run in CI. Session 7 supplies the validated workflows and release process. This repository is not an authenticated multi-user system, WORM archive, legal hold service, or cloud-sync product; define identity, access controls, retention, residency, and backup ownership before organizational production use.

@@ -1,7 +1,7 @@
 # EFNAI V9.1.0.1 — Beginner SPA Build and Deployment Guide
 
-**Status:** Session 3 deliverable · revision 1  
-**Master specification:** the user-supplied V9.1.0.1 text in this conversation. Older V6/V7/V8 examples are historical only where they conflict.  
+**Status:** Session 3 deliverable · revision 1<br>
+**Master specification:** the user-supplied V9.1.0.1 text in this conversation. Older V6/V7/V8 examples are historical only where they conflict.<br>
 **Runtime artifact:** [`v9/index.html`](../v9/index.html) — one immediately runnable HTML file with inline Tailwind CSS and vanilla JavaScript.
 
 > **Source-access note.** The V9.1.0.1 text pasted in the conversation is readable and is used as the current master. The attachment manifest named an Addendum (section 13), but its body and a PDF binary were not available in the workspace. This guide therefore marks properties absent from the accessible text as provisional instead of inventing rules.
@@ -62,7 +62,7 @@ A browser can open the core SPA as one HTML file. An installable PWA additionall
 
 ## 3. Prerequisites and local checkout
 
-Use Node.js 20 or newer. Git and a GitHub account are needed only for clone and deployment. Confirm the toolchain:
+Use Node.js 20.19 or newer for root development tooling; Node.js 22 is recommended. Git and a GitHub account are needed only for clone and deployment. Confirm the toolchain:
 
 ```sh
 node --version

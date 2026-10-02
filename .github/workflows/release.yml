@@ -1,0 +1,91 @@
+name: Build and publish a verifiable release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  attestations: write
+  id-token: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Test, package, checksum, attest, and publish
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the tagged source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - name: Confirm tag, package versions, and source commit
+        id: metadata
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          VERSION="$(node -p "require('./package.json').version")"
+          test "$RELEASE_TAG" = "v$VERSION"
+          test "$(git rev-parse "$RELEASE_TAG^{commit}")" = "$RELEASE_SHA"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+      - name: Install locked root dependencies
+        run: npm ci
+      - name: Run release checks
+        run: |
+          npm run lint
+          npm run check:build
+          npm audit --audit-level=moderate
+      - name: Build a reproducible source/PWA bundle and SHA-256 checksum
+        id: package
+        env:
+          VERSION: ${{ steps.metadata.outputs.version }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          ASSET="index-engine-v${VERSION}.zip"
+          STAGING="$(mktemp -d)"
+          PACKAGE_ROOT="Index-Engine-v${VERSION}"
+          SOURCE_DATE_EPOCH="$(git show -s --format=%ct "$RELEASE_TAG")"
+          mkdir -p "$STAGING/$PACKAGE_ROOT/docs" "$STAGING/$PACKAGE_ROOT/tools" dist
+          cp -R v9 "$STAGING/$PACKAGE_ROOT/v9"
+          cp tools/terminal-engine.html "$STAGING/$PACKAGE_ROOT/tools/terminal-engine.html"
+          cp README.md LICENSE "$STAGING/$PACKAGE_ROOT/"
+          cp docs/GUIDE-SPA.md docs/SPEC-AUDIT.md "$STAGING/$PACKAGE_ROOT/docs/"
+          find "$STAGING/$PACKAGE_ROOT" -exec touch -h -d "@$SOURCE_DATE_EPOCH" {} +
+          (
+            cd "$STAGING"
+            find "$PACKAGE_ROOT" -print | LC_ALL=C sort | TZ=UTC zip -X -q -@ "$GITHUB_WORKSPACE/dist/$ASSET"
+          )
+          (
+            cd dist
+            sha256sum "$ASSET" > SHA256SUMS.txt
+            sha256sum -c SHA256SUMS.txt
+          )
+          echo "asset=$ASSET" >> "$GITHUB_OUTPUT"
+      - name: Attest the release archive's build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/${{ steps.package.outputs.asset }}
+      - name: Publish GitHub Release with archive and checksum
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          VERSION: ${{ steps.metadata.outputs.version }}
+          ASSET: ${{ steps.package.outputs.asset }}
+        run: |
+          gh release create "$RELEASE_TAG" \
+            "dist/$ASSET" \
+            dist/SHA256SUMS.txt \
+            --verify-tag \
+            --title "Index Engine $VERSION" \
+            --generate-notes
