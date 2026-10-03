@@ -10,6 +10,7 @@
 - Hardened the Pages workflow with least-privilege build/deploy jobs, concurrency control, full-SHA action pins, source/build checks, and an artifact limited to `v9/`.
 - Added a tag-only release workflow that validates the tag/version/commit, reruns source checks, normalizes package timestamps, creates a versioned SPA ZIP and `SHA256SUMS.txt`, adds GitHub build provenance, and publishes both release assets.
 - Added a root version-consistency checker, YAML parser/action-pin checker, HTML validation configuration, and explicit button/input types for the accessible self-contained HTML artifacts. Inline `style` attributes remain intentionally permitted because of the single-file UI constraint.
+- After the PR check surfaced a newly published high-severity audit advisory in the Tailwind CLI's pinned `@parcel/watcher` 2.5.1 chain, added a root npm override to compatible `@parcel/watcher` 2.6.0. That release uses `picomatch` instead of the vulnerable `micromatch`/`braces` chain; clean install, builds, tests, and audit pass with the override.
 - Pinned and verified the Android Gradle 8.14.3 distribution checksum and Gradle wrapper JAR digest.
 - Added `CODEOWNERS`, `SECURITY.md`, `CONTRIBUTING.md`, Dependabot configuration, a pull-request template, and `docs/GUIDE-RELEASE.md`; removed `.github/workflows/blank.yml` and refreshed current README/plan references.
 
