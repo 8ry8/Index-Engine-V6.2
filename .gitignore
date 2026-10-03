@@ -1,0 +1,52 @@
+# ── Node / tooling ─────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+
+# ── Build output ───────────────────────────────────────────────────────
+dist/
+build/
+.tailwind.tmp.css
+*.tsbuildinfo
+
+# ── Capacitor generated bundles and build output ───────────────────────
+mobile/capacitor/node_modules/
+mobile/capacitor/www/
+mobile/capacitor/android/.gradle/
+mobile/capacitor/android/.idea/
+mobile/capacitor/android/local.properties
+mobile/capacitor/android/app/build/
+mobile/capacitor/ios/App/build/
+mobile/capacitor/ios/DerivedData/
+mobile/capacitor/ios/Pods/
+*.xcuserstate
+xcuserdata/
+DerivedData/
+
+# ── Secrets — NEVER commit ─────────────────────────────────────────────
+*.keystore
+*.jks
+keystore.properties
+android/keystore.properties
+ExportOptions.plist
+*.p8
+*.p12
+*.mobileprovision
+.env
+.env.*
+!.env.example
+
+# ── Generated ledger artifacts ─────────────────────────────────────────
+V6_Archive_*.csv
+ledger.csv
+SHA256SUMS.txt
+
+# ── Rename backups: must never be archived or synced ───────────────────
+.ledger-backup/
+rename-dryrun.txt
+
+# ── OS / editor ────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

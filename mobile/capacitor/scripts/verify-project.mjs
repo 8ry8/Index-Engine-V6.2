@@ -1,0 +1,75 @@
+#!/usr/bin/env node
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const appRoot = path.resolve(here, '..');
+const appPackage = JSON.parse(await fs.readFile(path.join(appRoot, 'package.json'), 'utf8'));
+const config = JSON.parse(await fs.readFile(path.join(appRoot, 'capacitor.config.json'), 'utf8'));
+const version = '8.4.3';
+assert.equal(appPackage.dependencies['@capacitor/core'], version);
+assert.equal(appPackage.dependencies['@capacitor/android'], version);
+assert.equal(appPackage.dependencies['@capacitor/ios'], version);
+assert.equal(appPackage.devDependencies['@capacitor/cli'], version);
+assert.equal(config.appId, 'org.efnai.indexengine');
+assert.equal(config.webDir, 'www');
+assert.equal(config.android.allowMixedContent, false);
+assert.equal(config.server.androidScheme, 'https');
+assert.equal(config.server?.url, undefined, 'production config must bundle local assets, not a development URL');
+
+const publicDir = path.join(appRoot, 'www');
+const source = await fs.readFile(path.resolve(appRoot, '../../v9/index.html'));
+const bundled = await fs.readFile(path.join(publicDir, 'index.html'));
+assert.deepEqual(bundled, source, 'web:sync must copy the current canonical SPA byte-for-byte');
+for (const file of ['manifest.webmanifest', 'sw.js', 'icon.svg'])
+  await fs.access(path.join(publicDir, file));
+
+const androidRoot = path.join(appRoot, 'android');
+const variables = await fs.readFile(path.join(androidRoot, 'variables.gradle'), 'utf8');
+assert.match(variables, /minSdkVersion\s*=\s*24/);
+assert.match(variables, /compileSdkVersion\s*=\s*36/);
+assert.match(variables, /targetSdkVersion\s*=\s*36/);
+const gradle = await fs.readFile(path.join(androidRoot, 'app/build.gradle'), 'utf8');
+assert.match(gradle, /applicationId\s+"org\.efnai\.indexengine"/);
+assert.match(gradle, /versionCode\s+90101/);
+assert.match(gradle, /versionName\s+"9\.1\.0\.1"/);
+const manifest = await fs.readFile(path.join(androidRoot, 'app/src/main/AndroidManifest.xml'), 'utf8');
+assert.match(manifest, /android\.permission\.INTERNET/);
+assert.match(manifest, /android:allowBackup="false"/);
+assert.match(manifest, /android:usesCleartextTraffic="false"/);
+assert.match(manifest, /android:dataExtractionRules="@xml\/data_extraction_rules"/);
+assert.doesNotMatch(manifest, /READ_EXTERNAL_STORAGE|WRITE_EXTERNAL_STORAGE|MANAGE_EXTERNAL_STORAGE|usesCleartextTraffic="true"/);
+const extractionRules = await fs.readFile(path.join(androidRoot, 'app/src/main/res/xml/data_extraction_rules.xml'), 'utf8');
+assert.match(extractionRules, /<cloud-backup>/);
+assert.match(extractionRules, /<device-transfer>/);
+assert.match(extractionRules, /domain="root" path="\."/);
+const filePaths = await fs.readFile(path.join(androidRoot, 'app/src/main/res/xml/file_paths.xml'), 'utf8');
+assert.match(filePaths, /<cache-path name="share" path="shared\/"/);
+assert.doesNotMatch(filePaths, /<external-path/);
+await fs.access(path.join(androidRoot, 'gradlew'));
+await fs.access(path.join(androidRoot, 'gradlew.bat'));
+const wrapperProperties = await fs.readFile(path.join(androidRoot, 'gradle/wrapper/gradle-wrapper.properties'), 'utf8');
+assert.match(wrapperProperties, /distributionSha256Sum=ed1a8d686605fd7c23bdf62c7fc7add1c5b23b2bbc3721e661934ef4a4911d7c/);
+const wrapperJar = await fs.readFile(path.join(androidRoot, 'gradle/wrapper/gradle-wrapper.jar'));
+assert.equal(createHash('sha256').update(wrapperJar).digest('hex'), '7d3a4ac4de1c32b59bc6a4eb8ecb8e612ccd0cf1ae1e99f66902da64df296172');
+
+const iosRoot = path.join(appRoot, 'ios');
+const iosProject = await fs.readFile(path.join(iosRoot, 'App/App.xcodeproj/project.pbxproj'), 'utf8');
+assert.match(iosProject, /PRODUCT_BUNDLE_IDENTIFIER = org\.efnai\.indexengine;/);
+assert.match(iosProject, /IPHONEOS_DEPLOYMENT_TARGET = 15\.0;/);
+assert.match(iosProject, /CURRENT_PROJECT_VERSION = 90101;/);
+assert.match(iosProject, /MARKETING_VERSION = 9\.1\.0\.1;/);
+const swiftPackage = await fs.readFile(path.join(iosRoot, 'App/CapApp-SPM/Package.swift'), 'utf8');
+assert.match(swiftPackage, /\.iOS\(\.v15\)/);
+assert.match(swiftPackage, /exact: "8\.4\.3"/);
+const iosInfo = await fs.readFile(path.join(iosRoot, 'App/App/Info.plist'), 'utf8');
+assert.match(iosInfo, /<string>Index Engine<\/string>/);
+assert.doesNotMatch(iosInfo, /NSCameraUsageDescription|NSMicrophoneUsageDescription|NSLocationWhenInUseUsageDescription/);
+const appIcon = await fs.readFile(path.join(iosRoot, 'App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png'));
+assert.equal(appIcon.readUInt32BE(16), 1024, 'iOS App Store icon must be 1024 px wide');
+assert.equal(appIcon.readUInt32BE(20), 1024, 'iOS App Store icon must be 1024 px tall');
+await fs.access(path.join(iosRoot, 'App/App/Assets.xcassets/Splash.imageset/splash-2732x2732.png'));
+console.log('Capacitor Android and iOS skeletons verified: local V9 assets, pinned 8.4.3, secure defaults, app identity and versions.');

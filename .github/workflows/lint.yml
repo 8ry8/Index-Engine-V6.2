@@ -1,0 +1,124 @@
+name: CI and Lint
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source:
+    name: SPA, HTML, and headless tests
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - name: Install locked root dependencies
+        run: npm ci
+      - name: Validate HTML and run headless suites
+        run: npm run lint
+      - name: Rebuild and confirm committed single-file artifacts are current
+        run: npm run check:build
+      - name: Audit root dependencies
+        run: npm audit --audit-level=moderate
+
+  mobile-config:
+    name: Mobile project sync and static checks
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - name: Install locked Capacitor dependencies
+        working-directory: mobile/capacitor
+        run: npm ci
+      - name: Sync both native shells and verify project metadata
+        working-directory: mobile/capacitor
+        run: |
+          npm run android:sync
+          npm run ios:sync
+          npm test
+      - name: Audit mobile dependencies
+        working-directory: mobile/capacitor
+        run: npm audit --audit-level=moderate
+
+  android-debug:
+    name: Android debug APK acceptance gate
+    needs: [source, mobile-config]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - name: Set up JDK 21
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Install Android SDK tools
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+      - name: Install Android API 36 platform and build tools
+        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+      - name: Install locked Capacitor dependencies
+        working-directory: mobile/capacitor
+        run: npm ci
+      - name: Build installable debug APK
+        working-directory: mobile/capacitor
+        run: npm run android:debug
+      - name: Upload debug APK
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: index-engine-android-debug-${{ github.sha }}
+          path: mobile/capacitor/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
+  ios-xcode:
+    name: iOS Simulator build and unsigned archive acceptance gate
+    needs: [source, mobile-config]
+    runs-on: macos-26
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - name: Verify Xcode 26 or later is selected
+        run: |
+          xcodebuild -version
+          XCODE_VERSION="$(xcodebuild -version | sed -n 's/^Xcode //p')"
+          XCODE_MAJOR="${XCODE_VERSION%%.*}"
+          test "$XCODE_MAJOR" -ge 26
+      - name: Install locked Capacitor dependencies
+        working-directory: mobile/capacitor
+        run: npm ci
+      - name: Build for the iOS Simulator
+        working-directory: mobile/capacitor
+        run: npm run ios:simulator
+      - name: Create unsigned Release archive
+        working-directory: mobile/capacitor
+        run: npm run ios:archive:unsigned
+      - name: Upload unsigned Xcode archive for inspection
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: index-engine-ios-unsigned-archive-${{ github.sha }}
+          path: mobile/capacitor/ios/App/build/Index-Engine.xcarchive
+          if-no-files-found: error
+          retention-days: 7

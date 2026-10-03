@@ -1,0 +1,15 @@
+{
+  "appId": "org.efnai.indexengine",
+  "appName": "Index Engine",
+  "webDir": "www",
+  "loggingBehavior": "none",
+  "backgroundColor": "#070b14",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false,
+    "captureInput": false
+  }
+}

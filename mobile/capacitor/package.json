@@ -1,0 +1,31 @@
+{
+  "name": "index-engine-capacitor",
+  "version": "9.1.0.1",
+  "private": true,
+  "description": "Capacitor native shell for the EFNAI Index Engine V9.1.0.1 SPA",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "npm run web:sync && node scripts/verify-project.mjs",
+    "web:sync": "node scripts/sync-web.mjs",
+    "android:add": "npm run web:sync && cap add android",
+    "android:sync": "npm run web:sync && cap sync android",
+    "android:debug": "npm run android:sync && node scripts/run-gradle.mjs assembleDebug",
+    "android:release": "npm run android:sync && node scripts/run-gradle.mjs bundleRelease",
+    "android:open": "cap open android",
+    "ios:add": "npm run web:sync && cap add ios",
+    "ios:sync": "npm run web:sync && cap sync ios",
+    "ios:open": "cap open ios",
+    "ios:simulator": "npm run ios:sync && xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -destination 'generic/platform=iOS Simulator' -derivedDataPath ios/DerivedData CODE_SIGNING_ALLOWED=NO build",
+    "ios:archive:unsigned": "npm run ios:sync && mkdir -p ios/App/build && xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release -destination 'generic/platform=iOS' -derivedDataPath ios/DerivedData -archivePath ios/App/build/Index-Engine.xcarchive CODE_SIGNING_ALLOWED=NO archive"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.4.3",
+    "@capacitor/core": "8.4.3",
+    "@capacitor/ios": "8.4.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.4.3"
+  }
+}
