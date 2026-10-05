@@ -48,30 +48,45 @@ The four parts must be numeric; `minor < 100`, `patch < 10`, and `revision < 10`
 
 ## 3. Create the release tag
 
-From the reviewed `main` commit whose package version is, for example, `9.1.0.1`:
+For a **new version only**, create an annotated tag on the reviewed `main` commit whose package version matches it. Substitute the current package version below; do not run these tag-creation commands for a tag that already exists.
 
 ```sh
 git checkout main
 git pull --ff-only origin main
 npm run check:version
-git tag -a v9.1.0.1 -m "Index Engine 9.1.0.1"
-git push origin v9.1.0.1
+VERSION="<package-version>"
+RELEASE_TAG="v$VERSION"
+git tag -a "$RELEASE_TAG" -m "Index Engine $VERSION"
+git push origin "$RELEASE_TAG"
 ```
 
-The tag must point at the reviewed commit and equal `v` plus the root package version. `.github/workflows/release.yml` rejects a version mismatch or a tag that does not resolve to the triggering commit. Protect `v*` tags with a repository ruleset so unauthorized users cannot create or move release tags. A tag push starts a workflow; it does not rebuild `main` or deploy Pages.
+The tag must point at the reviewed commit and equal `v` plus the root package version. `.github/workflows/release.yml` rejects a version mismatch, a lightweight tag, or a tag that does not resolve to the triggering commit. Protect `v*` tags with a repository ruleset so unauthorized users cannot create or move release tags. A tag push starts a workflow; it does not rebuild `main` or deploy Pages.
+
+### Recover a failed release without changing its tag
+
+If a tag already exists but its release workflow failed, **do not delete, recreate, or move the tag**. Merge the corrected workflow onto the default branch, then manually dispatch it against the existing tag. For example:
+
+```sh
+gh workflow run release.yml \
+  --repo 8ry8/Index-Engine-V6.2 \
+  --ref v9.1.0.1 \
+  -f release_tag=v9.1.0.1
+```
+
+The manual input is required, the workflow checks out that tag, confirms it is annotated and points at its own commit, and verifies the tag matches the package version. The run also checks the event's commit when dispatched directly against a tag. It never pushes or changes a tag. `--verify-tag` prevents GitHub CLI from creating a missing tag during publication; an already-existing GitHub Release is not overwritten.
 
 ## 4. Workflow outputs
 
-On a valid tag, the workflow:
+On a valid tag push or manual dispatch, the workflow:
 
-1. checks out the tag and installs only the root lockfile;
+1. checks out the requested tag and installs only the root lockfile;
 2. runs version alignment, HTML validation, headless tests, reproducible build checks, and npm audit;
-3. stages the documented release tree and normalizes file times to the tagged commit timestamp;
+3. stages the documented release tree and normalizes file times to the **peeled source commit's** timestamp (not the annotated tag object's message/date);
 4. builds `index-engine-v<version>.zip`, writes `SHA256SUMS.txt`, and verifies it in the runner;
 5. publishes a GitHub SLSA build-provenance attestation for the ZIP;
 6. creates the GitHub Release and attaches the ZIP and checksum file.
 
-The release workflow uses minimal `contents: write`, `attestations: write`, and `id-token: write` permissions only for the tag-triggered job. All workflow actions are pinned to full commit SHAs with version comments. GitHub-hosted logs, release assets, tagged source, checksum, and attestation provide independent verification points.
+The release workflow uses minimal `contents: write`, `attestations: write`, and `id-token: write` permissions only for the release job. All workflow actions are pinned to full commit SHAs with version comments. GitHub-hosted logs, release assets, tagged source, checksum, and attestation provide independent verification points.
 
 ## 5. Verify a downloaded release
 
