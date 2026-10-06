@@ -41,19 +41,20 @@ jobs:
           {
             echo "### macOS build diagnosis — \`${GITHUB_SHA::7}\` — exit \`${EXIT_STATUS}\`"
             echo
-            echo "<details><summary>Swift / Xcode errors</summary>"
+            echo "<details><summary>Error lines</summary>"
             echo
             echo '```'
-            grep -E '(^|[^a-zA-Z])error:|error:.*\.swift|FAILED|fatal error|code signing|CodeSign|** BUILD FAILED **' /tmp/macos-build.log | head -80 \
-              || echo '(no error lines matched)'
+            grep -v -E '\.pcm|swiftmodule|prebuilt-modules|ModuleCache\.noindex' /tmp/macos-build.log \
+              | grep -n -i -E 'error|fail|warning:' | cut -c1-400 | head -100 || echo '(none)'
             echo '```'
             echo
             echo "</details>"
             echo
-            echo "<details><summary>Last 80 non-module-cache log lines</summary>"
+            echo "<details><summary>Log tail (long lines truncated)</summary>"
             echo
             echo '```'
-            grep -v 'SwiftExplicitDependency' /tmp/macos-build.log | tail -n 80
+            grep -v -E '\.pcm|swiftmodule|prebuilt-modules|ModuleCache\.noindex' /tmp/macos-build.log \
+              | cut -c1-300 | tail -n 120
             echo '```'
             echo
             echo "</details>"
