@@ -232,9 +232,11 @@ extension BrowserController: WKUIDelegate {
         completionHandler(NSAlert.textInput(prompt: prompt, defaultText: defaultText))
     }
 
+    // The Swift name must be `webView(_:createWebViewWith:for:windowFeatures:)`.
+    // A `createWebViewWithConfiguration:` label compiles but is never called.
     func webView(
         _ webView: WKWebView,
-        createWebViewWithConfiguration configuration: WKWebViewConfiguration,
+        createWebViewWith configuration: WKWebViewConfiguration,
         for navigationAction: WKNavigationAction,
         windowFeatures: WKWindowFeatures
     ) -> WKWebView? {

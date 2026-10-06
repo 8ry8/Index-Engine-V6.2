@@ -306,7 +306,7 @@ final class LocalAssetServer {
     // MARK: - Response construction
 
     private static func textResponse(status: Int, reason: String, message: String) -> Data {
-        response(status: status, reason: reason, contentType: "text/plain; charset=utf-8", body: Data(message))
+        response(status: status, reason: reason, contentType: "text/plain; charset=utf-8", body: Data(message.utf8))
     }
 
     private static func response(status: Int, reason: String, contentType: String?, body: Data) -> Data {
