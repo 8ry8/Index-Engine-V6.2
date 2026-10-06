@@ -19,11 +19,14 @@ final class BrowserController: NSObject {
 
     private enum ShellError: LocalizedError {
         case missingBundleResources
+        case contentProcessTerminated
 
         var errorDescription: String? {
             switch self {
             case .missingBundleResources:
                 return "The bundled web assets are missing from the application. Run `npm run macos:sync` and rebuild."
+            case .contentProcessTerminated:
+                return "The web content process terminated unexpectedly. Use Reload Engine to reopen the archive."
             }
         }
     }
@@ -32,6 +35,7 @@ final class BrowserController: NSObject {
     private let server = LocalAssetServer.shared
     private var downloadHandlers: [ObjectIdentifier: DownloadHandler] = [:]
     private var reloadObserver: NSObjectProtocol?
+    private var attemptedOrigin: String?
     private weak var webView: WKWebView?
 
     init(model: BrowserModel) {
@@ -80,13 +84,15 @@ final class BrowserController: NSObject {
             let root = resources.appendingPathComponent("www", isDirectory: true)
             let baseURL = try server.start(root: root)
             let document = baseURL.appendingPathComponent("index.html")
+            attemptedOrigin = baseURL.absoluteString
+            shellLog.notice("Listening on \(baseURL.absoluteString, privacy: .public); loading \(document.absoluteString, privacy: .public)")
             webView.load(URLRequest(
                 url: document,
                 cachePolicy: .reloadIgnoringLocalAndRemoteCacheData,
                 timeoutInterval: 30
             ))
         } catch {
-            model.reportFailure(error.localizedDescription)
+            model.reportFailure(error, context: "The local asset server could not be started.")
         }
     }
 
@@ -143,16 +149,28 @@ extension BrowserController: WKNavigationDelegate {
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
         guard !isCancellation(error) else { return }
-        model.reportFailure(error.localizedDescription)
+        model.reportFailure(error, context: loadFailureContext)
     }
 
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
         guard !isCancellation(error) else { return }
-        model.reportFailure(error.localizedDescription)
+        model.reportFailure(error, context: loadFailureContext)
     }
 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
-        model.reportFailure("The web content process terminated unexpectedly. Use Reload Engine to reopen the archive.")
+        model.reportFailure(
+            ShellError.contentProcessTerminated,
+            context: loadFailureContext
+        )
+    }
+
+    /// Frames a load failure with the origin that was actually attempted, so the
+    /// diagnostic distinguishes a dead local server from a blocked load.
+    private var loadFailureContext: String {
+        if let attemptedOrigin = attemptedOrigin {
+            return "The bundled engine could not be loaded from \(attemptedOrigin)."
+        }
+        return "The bundled engine could not be loaded; the local server never reported an origin."
     }
 
     private func isCancellation(_ error: Error) -> Bool {
