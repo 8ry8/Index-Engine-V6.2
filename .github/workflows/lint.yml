@@ -122,3 +122,49 @@ jobs:
           path: mobile/capacitor/ios/App/build/Index-Engine.xcarchive
           if-no-files-found: error
           retention-days: 7
+
+  macos-app:
+    name: macOS universal app acceptance gate
+    needs: [source, mobile-config]
+    runs-on: macos-26
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Verify Xcode 26 or later is selected
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          XCODE_VERSION="$(xcodebuild -version | sed -n 's/^Xcode //p')"
+          XCODE_MAJOR="${XCODE_VERSION%%.*}"
+          test "$XCODE_MAJOR" -ge 26
+      - name: Sync the V9 bundle and verify the macOS shell configuration
+        run: npm run macos:check
+      - name: Build the universal Release app bundle
+        run: npm run macos:build
+      - name: Create an unsigned Release archive
+        run: npm run macos:archive:unsigned
+      - name: Confirm the bundle is universal and carries the V9 engine
+        run: |
+          set -euo pipefail
+          APP="mobile/macos/DerivedData/Build/Products/Release/IndexEngine.app"
+          BINARY="$APP/Contents/MacOS/IndexEngine"
+          test -d "$APP"
+          test -f "$BINARY"
+          echo "Architectures: $(/usr/bin/lipo -archs "$BINARY")"
+          /usr/bin/lipo -archs "$BINARY" | grep -q arm64
+          /usr/bin/lipo -archs "$BINARY" | grep -q x86_64
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Contents/Info.plist" | grep -qx 'org.efnai.indexengine'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist" | grep -qx '9.1.0.1'
+          /usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$APP/Contents/Info.plist" | grep -qx '13.0'
+          test -f "$APP/Contents/Resources/www/index.html"
+          cmp "$APP/Contents/Resources/www/index.html" v9/index.html
+          /usr/bin/codesign --verify --deep --strict "$APP" 2>&1 | sed 's/^/codesign: /' || echo "note: unsigned build produced no verifiable signature"
+      - name: Package a distributable ZIP
+        run: npm run macos:package
+      - name: Upload the universal app bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: index-engine-macos-app-${{ github.sha }}
+          path: mobile/macos/dist/IndexEngine-9.1.0.1-macos-universal.zip
+          if-no-files-found: error
+          retention-days: 14
