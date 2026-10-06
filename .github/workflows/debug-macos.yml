@@ -1,7 +1,9 @@
 name: Debug macOS build
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - arena/07fe4a90-index-engine-v6-2
 
 permissions:
   contents: read
