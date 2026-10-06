@@ -25,12 +25,11 @@ jobs:
       - name: Build
         id: build
         run: |
-          set -uo pipefail
+          set +e
           npm run macos:build > /tmp/macos-build.log 2>&1
-          echo "exit_status=$?" >> "$GITHUB_OUTPUT"
-          echo "::group::build log"
-          cat /tmp/macos-build.log
-          echo "::endgroup::"
+          STATUS=$?
+          echo "exit_status=$STATUS" >> "$GITHUB_OUTPUT"
+          exit 0
       - name: Report to the session PR
         if: always()
         env:
@@ -40,12 +39,23 @@ jobs:
           set -euo pipefail
           PR="$(gh pr list --head arena/07fe4a90-index-engine-v6-2 --state open --json number --jq '.[0].number')"
           {
-            echo "### macOS build diagnosis — \`${GITHUB_SHA::7}\`"
+            echo "### macOS build diagnosis — \`${GITHUB_SHA::7}\` — exit \`${EXIT_STATUS}\`"
             echo
-            echo "exit status: \`${EXIT_STATUS}\`"
+            echo "<details><summary>Swift / Xcode errors</summary>"
             echo
             echo '```'
-            tail -n 300 /tmp/macos-build.log
+            grep -E '(^|[^a-zA-Z])error:|error:.*\.swift|FAILED|fatal error|code signing|CodeSign|** BUILD FAILED **' /tmp/macos-build.log | head -80 \
+              || echo '(no error lines matched)'
             echo '```'
+            echo
+            echo "</details>"
+            echo
+            echo "<details><summary>Last 80 non-module-cache log lines</summary>"
+            echo
+            echo '```'
+            grep -v 'SwiftExplicitDependency' /tmp/macos-build.log | tail -n 80
+            echo '```'
+            echo
+            echo "</details>"
           } > /tmp/report.md
           gh pr comment "$PR" --body-file /tmp/report.md
