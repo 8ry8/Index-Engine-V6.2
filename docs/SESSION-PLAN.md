@@ -24,6 +24,7 @@
 | **5** | **Android Application** | Capacitor wrapper (Kotlin/Compose alternative documented) | `docs/GUIDE-ANDROID.md`, `mobile/capacitor/android/` | ✅ committed (`cdc53a6`); debug APK gate passed in hosted Session 7 CI |
 | **6** | **iOS Application** | Capacitor SPM wrapper (SwiftUI alternative documented) | `docs/GUIDE-IOS.md`, `mobile/capacitor/ios/` | ✅ committed (`1822dc6`); Simulator and unsigned archive gates passed in hosted CI |
 | **7** | **CI/CD, Pages & Release** | SHA-pinned CI/Pages/mobile builds, checksum + provenance release, governance | `.github/workflows/lint.yml`, `pages.yml`, `release.yml` | ✅ hosted CI passed; post-merge Pages and tagged release gates pending |
+| **8** | **macOS Application** | Native SwiftUI + WKWebView shell (Capacitor has no macOS platform) | `mobile/macos/`, `docs/GUIDE-MACOS.md` | ✅ universal Release built in hosted CI; device acceptance, notarization, MAS pending |
 
 ---
 
@@ -139,6 +140,40 @@
 
 ---
 
+---
+
+## Session 8 — macOS Application ✅ UNIVERSAL RELEASE BUILT IN HOSTED CI
+
+**Goal.** Ship a native macOS application around the canonical V9 SPA, with a
+beginner guide, all three distribution paths, and an explicit build gate.
+
+**Constraint that shaped the design.** Capacitor 8.4.3 ships iOS and Android
+platforms only; there is no `@capacitor/macos` in the npm registry. Electron and
+Tauri were rejected against the repository's minimal-dependency and
+security-first rules, so the macOS shell is a native Xcode project with **zero
+package dependencies**.
+
+**Delivered.** `mobile/macos/IndexEngine.xcodeproj` (bundle ID
+`org.efnai.indexengine`, macOS 13.0+, universal `arm64 x86_64`, version
+`9.1.0.1` / build `90101`, hardened runtime, App Sandbox); a SwiftUI +
+`WKWebView` shell; a loopback-only HTTP asset server that gives the bundled SPA
+a real, trustworthy web origin so IndexedDB persists; native save/open panels
+and alert/confirm/prompt bridges; a committed macOS AppIcon set rendered from
+`v9/icon.svg`; sync, verify, package, and sign scripts; and
+`docs/GUIDE-MACOS.md` covering ad-hoc, Developer ID + notarization, and Mac App
+Store distribution.
+
+**Acceptance gate.** `npm run macos:check` passes on Linux. The `macos-app` CI
+job on `macos-26` builds the universal Release bundle, creates an unsigned
+archive, verifies architectures and Info.plist identity, confirms the in-bundle
+SPA is byte-identical to `v9/index.html`, and uploads a ZIP.
+
+**Not delivered in this session:** launching on physical hardware, the section 9
+device acceptance checklist, signed/notarized distribution, and Mac App Store
+submission. See `docs/SESSION-8-REPORT.md`.
+
+---
+
 ## Progress Ledger
 
 | Session | Started | Completed | Artifact(s) | Gate |
@@ -150,3 +185,4 @@
 | 5 | 2026-10-02 | 2026-10-02 | `mobile/capacitor/`, `docs/GUIDE-ANDROID.md`, `docs/SESSION-5-REPORT.md` | ✅ local config/audit plus hosted APK build pass (run `37056486919`); commit `cdc53a6` |
 | 6 | 2026-10-02 | 2026-10-02 | `mobile/capacitor/ios/`, `docs/GUIDE-IOS.md`, `docs/SESSION-6-REPORT.md` | ✅ local config/sync/audit and hosted Simulator/archive pass (run `37056486919`); commit `1822dc6` |
 | 7 | 2026-10-02 | 2026-10-02 | SHA-pinned workflows, repository governance, version/checksum/provenance release process, `docs/SESSION-7-REPORT.md` | ✅ local validation + hosted CI passed; main Pages deployment and tagged release pending |
+| 8 | 2026-10-06 | 2026-10-06 | `mobile/macos/`, `docs/GUIDE-MACOS.md`, `docs/SESSION-8-REPORT.md` | ✅ `npm run macos:check` on Linux; universal Release build, archive, and packaging in hosted CI |
