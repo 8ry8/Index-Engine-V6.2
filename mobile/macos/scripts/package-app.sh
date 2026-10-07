@@ -46,6 +46,8 @@ echo "Architectures: $(/usr/bin/lipo -archs "$STAGING/IndexEngine.app/Contents/M
 rm -f "$ZIP"
 ditto -c -k --sequesterRsrc --keepParent "$STAGING/IndexEngine.app" "$ZIP"
 echo "wrote $ZIP"
+echo
+echo "To install this build (replacing any stale copy):  npm run macos:install"
 
 if [[ "${1:-}" == "--dmg" ]]; then
   ln -sf /Applications "$STAGING/Applications"

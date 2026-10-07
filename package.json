@@ -19,6 +19,7 @@
     "macos:build": "npm run macos:sync && xcodebuild -project mobile/macos/IndexEngine.xcodeproj -scheme IndexEngine -configuration Release -destination 'generic/platform=macOS' -derivedDataPath mobile/macos/DerivedData build CODE_SIGNING_ALLOWED=NO",
     "macos:archive:unsigned": "npm run macos:sync && xcodebuild -project mobile/macos/IndexEngine.xcodeproj -scheme IndexEngine -configuration Release -destination 'generic/platform=macOS' -derivedDataPath mobile/macos/DerivedData -archivePath mobile/macos/build/Index-Engine.xcarchive CODE_SIGNING_ALLOWED=NO archive",
     "macos:package": "bash mobile/macos/scripts/package-app.sh",
+    "macos:install": "bash mobile/macos/scripts/install-app.sh --build",
     "macos:sign": "bash mobile/macos/scripts/sign-app.sh",
     "check:build": "node tools/check-build.mjs",
     "build:spa": "tailwindcss -i tools/tailwind.css -o .tailwind.tmp.css --minify && node tools/inline-tailwind.mjs .tailwind.tmp.css v9/index.html",

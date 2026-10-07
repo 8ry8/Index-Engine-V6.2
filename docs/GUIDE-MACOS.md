@@ -138,10 +138,17 @@ In Xcode, select the **IndexEngine** scheme and **My Mac**, then press **Run**.
 ## 5. Build from the command line
 
 ```sh
+npm run macos:install            # build, verify, and install into /Applications
 npm run macos:build              # universal Release .app (unsigned)
 npm run macos:archive:unsigned   # unsigned Release .xcarchive
 npm run macos:package            # ZIP into mobile/macos/dist/
 ```
+
+**Prefer `npm run macos:install`.** It rebuilds, refuses to install a bundle
+that is missing the engine, quits a running instance, *replaces* rather than
+merges the bundle in `/Applications`, clears the quarantine attribute, and then
+verifies the installed copy. Manual `cp -R` is the one step in this workflow
+that fails silently — see the troubleshooting table.
 
 Products:
 
@@ -333,7 +340,10 @@ The rendered PNGs are committed, so a clean clone never needs the rasterizer.
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| Empty window with “The local engine could not start” | `www` was never synced | `npm run macos:sync`, then rebuild |
+| Empty window with “The local engine could not start” | A **stale** `.app` is still in `/Applications` — an old bundle that predates the asset sync, even though the freshly built one is fine | Run `npm run macos:install`, which replaces the bundle instead of merging into it. Confirm with `ls "/Applications/Index Engine.app/Contents/Resources/www"` |
+| `ls: .../Contents/Resources/www: No such file or directory` | Same stale-bundle cause | `npm run macos:install` |
+| `cp -R` produced `/Applications/Index Engine.app/IndexEngine.app` | `cp -R` copies *inside* an existing bundle rather than replacing it | `rm -rf` the destination first, or just use `npm run macos:install` |
+| Empty window after a confirmed-good build | `www` was never synced | `npm run macos:sync`, then `npm run macos:build` |
 | `xcrun: error: unable to find utility "xcodebuild"` | Command Line Tools not selected | `sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer` |
 | Build fails on `www in Resources` | Missing generated bundle | Run `npm run macos:sync` before `xcodebuild` |
 | `lipo -archs` prints only `arm64` | `ONLY_ACTIVE_ARCH` overrode `ARCHS` | Build the **Release** configuration (`ONLY_ACTIVE_ARCH = NO`) |

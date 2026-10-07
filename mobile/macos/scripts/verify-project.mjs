@@ -28,6 +28,16 @@ const escapedVersion = version.replaceAll('.', '\\.');
 
 // ── Bundled SPA must be a byte-identical copy of the canonical engine ─────
 const publicDir = path.join(appRoot, 'IndexEngine', 'Resources', 'www');
+for (const file of ['index.html', 'manifest.webmanifest', 'sw.js', 'icon.svg']) {
+  try {
+    await fs.access(path.join(publicDir, file));
+  } catch {
+    throw new Error(
+      `The bundled web assets are missing (${path.join(publicDir, file)}).\n` +
+        'Run `npm run macos:sync` to copy v9/ into the app bundle, then verify again.'
+    );
+  }
+}
 const sourceHtml = await fs.readFile(path.join(repoRoot, 'v9', 'index.html'));
 const bundledHtml = await fs.readFile(path.join(publicDir, 'index.html'));
 assert.deepEqual(bundledHtml, sourceHtml, 'macos:sync must copy the canonical SPA byte-for-byte');
