@@ -50,10 +50,9 @@ npm run build:terminal
 
 - [`docs/GUIDE-SPA.md`](docs/GUIDE-SPA.md): static SPA deployment, Pages, HTTPS, security, and troubleshooting.
 - [`docs/GUIDE-ANDROID.md`](docs/GUIDE-ANDROID.md) and [`docs/GUIDE-IOS.md`](docs/GUIDE-IOS.md): Capacitor setup/build paths and documented Kotlin/Compose and SwiftUI alternatives.
-- [`docs/GUIDE-MACOS.md`](docs/GUIDE-MACOS.md): native macOS app — build, ad-hoc/Developer ID/notarized, and Mac App Store paths.
 - [`docs/GUIDE-RELEASE.md`](docs/GUIDE-RELEASE.md): versioned release, checksum, and provenance verification.
 - [`.github/workflows/pages.yml`](.github/workflows/pages.yml) and [`.github/workflows/lint.yml`](.github/workflows/lint.yml): pinned, validated Pages deployment and cross-platform CI.
 - [`docs/SESSION-PLAN.md`](docs/SESSION-PLAN.md): segregated delivery sessions and acceptance gates.
 - Session reports: [`docs/SESSION-4-REPORT.md`](docs/SESSION-4-REPORT.md), [`docs/SESSION-5-REPORT.md`](docs/SESSION-5-REPORT.md), [`docs/SESSION-6-REPORT.md`](docs/SESSION-6-REPORT.md), and [`docs/SESSION-7-REPORT.md`](docs/SESSION-7-REPORT.md).
 
-Sessions 5 and 6 deliver the Android/iOS project skeletons; their native build gates run in CI. Session 7 supplies the validated workflows and release process. Session 8 delivers the macOS application in `mobile/macos/`; Capacitor has no macOS platform, so it is a native SwiftUI + WKWebView Xcode project with zero package dependencies. This repository is not an authenticated multi-user system, WORM archive, legal hold service, or cloud-sync product; define identity, access controls, retention, residency, and backup ownership before organizational production use.
+Sessions 5 and 6 deliver the Android/iOS project skeletons; their native build gates run in CI. Session 7 supplies the validated workflows and release process. This repository is not an authenticated multi-user system, WORM archive, legal hold service, or cloud-sync product; define identity, access controls, retention, residency, and backup ownership before organizational production use.

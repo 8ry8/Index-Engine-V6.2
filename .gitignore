@@ -18,12 +18,6 @@ mobile/capacitor/android/app/build/
 mobile/capacitor/ios/App/build/
 mobile/capacitor/ios/DerivedData/
 mobile/capacitor/ios/Pods/
-
-# ── macOS native shell build output and generated bundles ────────────────
-mobile/macos/IndexEngine/Resources/www/
-mobile/macos/DerivedData/
-mobile/macos/build/
-mobile/macos/dist/
 *.xcuserstate
 xcuserdata/
 DerivedData/
