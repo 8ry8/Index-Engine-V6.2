@@ -237,13 +237,40 @@ final class LocalAssetServer {
         var noPipeSignal: Int32 = 1
         setsockopt(client, SOL_SOCKET, SO_NOSIGPIPE, &noPipeSignal, socklen_t(MemoryLayout<Int32>.size))
         #endif
+        makeBlocking(client)
 
         guard let head = readRequestHead(client) else {
-            shellLog.notice("Asset server: the peer connected but sent no request.")
+            let code = errno
+            shellLog.notice("Asset server: the peer connected but sent no request (errno \(code)).")
             return
         }
         let response = makeResponse(for: head, root: root)
-        write(response, to: client)
+        let written = write(response, to: client)
+        let requestLine = String(head.prefix { $0 != "\r" && $0 != "\n" })
+        if written == response.count {
+            shellLog.debug("Asset server: \(requestLine, privacy: .public) -> \(response.count) bytes")
+        } else {
+            shellLog.notice("Asset server: \(requestLine, privacy: .public) wrote \(written) of \(response.count) bytes (errno \(errno)).")
+        }
+    }
+
+    /// Puts an accepted connection into blocking mode with bounded timeouts.
+    ///
+    /// On Darwin, `accept(2)` gives the new socket the listener's `O_NONBLOCK`
+    /// flag. Left alone, the first `read` races the browser's request: it returns
+    /// `EAGAIN` before any bytes arrive, the server closes without answering, and
+    /// WebKit reports `NSURLErrorNetworkConnectionLost` (-1005). Large writes can
+    /// be truncated the same way. Blocking mode plus `SO_RCVTIMEO`/`SO_SNDTIMEO`
+    /// makes each read and write wait for the peer, up to a bound.
+    private func makeBlocking(_ client: Int32) {
+        let flags = fcntl(client, F_GETFL, 0)
+        if flags >= 0, flags & O_NONBLOCK != 0 {
+            _ = fcntl(client, F_SETFL, flags & ~O_NONBLOCK)
+        }
+        var timeout = timeval(tv_sec: 10, tv_usec: 0)
+        setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
+        setsockopt(client, SOL_SOCKET, SO_SNDTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
+    }
         let requestLine = String(head.prefix { $0 != "\r" && $0 != "\n" })
         shellLog.debug("Asset server: \(requestLine, privacy: .public) -> \(response.count) bytes")
     }
@@ -343,17 +370,20 @@ final class LocalAssetServer {
         return nil
     }
 
-    private func write(_ data: Data, to client: Int32) {
-        data.withUnsafeBytes { raw in
-            guard let base = raw.baseAddress else { return }
+    /// Writes the whole payload. Returns the number of bytes actually written.
+    @discardableResult
+    private func write(_ data: Data, to client: Int32) -> Int {
+        data.withUnsafeBytes { raw -> Int in
+            guard let base = raw.baseAddress else { return 0 }
             var sent = 0
             while sent < data.count {
                 let count = Darwin.write(client, base.advanced(by: sent), data.count - sent)
                 if count > 0 { sent += count; continue }
                 let code = errno
                 if code == EINTR { continue }
-                return
+                return sent
             }
+            return sent
         }
     }
 
