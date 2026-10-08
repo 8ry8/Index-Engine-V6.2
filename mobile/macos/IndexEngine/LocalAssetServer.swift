@@ -271,9 +271,6 @@ final class LocalAssetServer {
         setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
         setsockopt(client, SOL_SOCKET, SO_SNDTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
     }
-        let requestLine = String(head.prefix { $0 != "\r" && $0 != "\n" })
-        shellLog.debug("Asset server: \(requestLine, privacy: .public) -> \(response.count) bytes")
-    }
 
     /// Closes a connection gracefully: half-close, drain, then close.
     ///
