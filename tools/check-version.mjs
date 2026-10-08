@@ -26,7 +26,13 @@ assert.match(androidGradle, new RegExp(`versionCode\\s+${versionCode}\\b`));
 const iosProject = await fs.readFile(path.join(root, 'mobile/capacitor/ios/App/App.xcodeproj/project.pbxproj'), 'utf8');
 assert.match(iosProject, new RegExp(`MARKETING_VERSION = ${version.replaceAll('.', '\\.')};`));
 assert.match(iosProject, new RegExp(`CURRENT_PROJECT_VERSION = ${versionCode};`));
+
+const dottedVersion = version.split(".").join("[.]");
+const macosProject = await fs.readFile(path.join(root, 'mobile/macos/IndexEngine.xcodeproj/project.pbxproj'), 'utf8');
+assert.match(macosProject, new RegExp(`MARKETING_VERSION = ${dottedVersion};`));
+assert.match(macosProject, new RegExp(`CURRENT_PROJECT_VERSION = ${versionCode};`));
+
 const html = await fs.readFile(path.join(root, 'v9/index.html'), 'utf8');
 assert.ok(html.includes(`Index Engine v${version}`), 'V9 page title must use the release version');
 
-console.log(`Version ${version} is aligned across root/mobile lockfiles, Android (${versionCode}), iOS, and the V9 SPA.`);
+console.log(`Version ${version} is aligned across root/mobile lockfiles, Android (${versionCode}), iOS, macOS, and the V9 SPA.`);

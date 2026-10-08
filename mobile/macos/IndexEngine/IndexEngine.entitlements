@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Confines the app to its own container. Required for notarization and for
+	     the Mac App Store. -->
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+	<!-- The app serves its own bundled web assets over 127.0.0.1 on an ephemeral
+	     kernel-assigned port. It never accepts connections from the network. -->
+	<key>com.apple.security.network.server</key>
+	<true/>
+	<!-- File-input ingestion and the export save panel. -->
+	<key>com.apple.security.files.user-selected.read-write</key>
+	<true/>
+	<!--
+	  Deliberately absent: the outbound-network client entitlement.
+
+	  The V9.1.0.1 engine is fully offline. Outbound network access is needed only
+	  by the optional, user-initiated Gemini metadata extraction, which is not part
+	  of the shipped default. If you enable that feature, add the client entitlement
+	  (see docs/GUIDE-MACOS.md) and review the App Store privacy answers first.
+	-->
+</dict>
+</plist>
