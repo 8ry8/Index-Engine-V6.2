@@ -69,15 +69,34 @@ final class LocalAssetServer {
     )
 
     private var root: URL?
+    private var activeRoot: URL?
     private var listenHandle: Int32 = -1
     private var readSource: DispatchSourceRead?
     private var assignedPort: UInt16 = 0
 
     private init() {}
 
-    /// Starts (or restarts) the server. Returns the base URL, e.g. `http://127.0.0.1:52031`.
+    /// Starts the server, or returns the origin of the server already running.
+    ///
+    /// Restarting the listener closes every socket it owns. Doing that while a
+    /// load is in flight kills that load, and WebKit reports it as
+    /// `NSURLErrorNetworkConnectionLost` ("The network connection was lost").
+    /// If we are already serving this exact root, reuse the running server
+    /// rather than tearing it down.
     @discardableResult
     func start(root: URL) throws -> URL {
+        lock.lock()
+        let runningRoot = activeRoot?.standardizedFileURL
+        let runningPort = assignedPort
+        let isRunning = listenHandle >= 0
+        lock.unlock()
+
+        let requestedRoot = root.standardizedFileURL
+        if isRunning, runningPort > 0, runningRoot == requestedRoot {
+            shellLog.debug("Asset server: already serving on port \(runningPort); reusing it.")
+            return URL(string: "http://127.0.0.1:\(runningPort)")!
+        }
+
         stop()
 
         var isDirectory: ObjCBool = false
@@ -142,13 +161,16 @@ final class LocalAssetServer {
 
         lock.lock()
         self.root = root
+        self.activeRoot = root
         self.listenHandle = handle
         self.assignedPort = port
         self.readSource = source
         lock.unlock()
 
         source.resume()
-        return URL(string: "http://127.0.0.1:\(port)")!
+        let origin = URL(string: "http://127.0.0.1:\(port)")!
+        shellLog.notice("Asset server: listening on \(origin.absoluteString, privacy: .public) for \(root.path, privacy: .public)")
+        return origin
     }
 
     func stop() {
@@ -158,6 +180,7 @@ final class LocalAssetServer {
         listenHandle = -1
         assignedPort = 0
         root = nil
+        activeRoot = nil
         lock.unlock()
         source?.cancel()          // the cancel handler closes the descriptor
     }
@@ -209,18 +232,49 @@ final class LocalAssetServer {
     // MARK: - Request handling
 
     private func respond(to client: Int32, root: URL) {
-        defer {
-            Darwin.shutdown(client, SHUT_WR)
-            Darwin.close(client)
-        }
+        defer { finish(client) }
         #if canImport(Darwin)
         var noPipeSignal: Int32 = 1
         setsockopt(client, SOL_SOCKET, SO_NOSIGPIPE, &noPipeSignal, socklen_t(MemoryLayout<Int32>.size))
         #endif
 
-        guard let head = readRequestHead(client) else { return }
+        guard let head = readRequestHead(client) else {
+            shellLog.notice("Asset server: the peer connected but sent no request.")
+            return
+        }
         let response = makeResponse(for: head, root: root)
         write(response, to: client)
+        let requestLine = String(head.prefix { $0 != "\r" && $0 != "\n" })
+        shellLog.debug("Asset server: \(requestLine, privacy: .public) -> \(response.count) bytes")
+    }
+
+    /// Closes a connection gracefully: half-close, drain, then close.
+    ///
+    /// The drain is the point. `close()` on a socket that still holds unread
+    /// received bytes makes the kernel emit **RST** instead of FIN, and WebKit
+    /// surfaces that as `NSURLErrorNetworkConnectionLost` even though every byte
+    /// of the response was written. Draining first guarantees a clean FIN.
+    /// `SO_RCVTIMEO` bounds the drain so a peer that never closes cannot pin a
+    /// worker thread.
+    private func finish(_ client: Int32) {
+        Darwin.shutdown(client, SHUT_WR)
+
+        var timeout = timeval()
+        timeout.tv_sec = 2
+        setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
+
+        var scratch = [UInt8](repeating: 0, count: 1024)
+        while true {
+            let count = scratch.withUnsafeMutableBytes { raw -> Int in
+                guard let base = raw.baseAddress else { return -1 }
+                return Darwin.read(client, base, 1024)
+            }
+            if count > 0 { continue }
+            if count == 0 { break }
+            if errno == EINTR { continue }
+            break   // EAGAIN from SO_RCVTIMEO, or a terminal error
+        }
+        Darwin.close(client)
     }
 
     private func readRequestHead(_ client: Int32) -> String? {

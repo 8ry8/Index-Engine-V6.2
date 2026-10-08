@@ -79,6 +79,10 @@ final class BrowserController: NSObject {
 
     func loadRootDocument(in webView: WKWebView) {
         model.reportStarting("Opening the local archive…")
+        // If the shell is ever constructed twice, this makes it visible: two
+        // different controller IDs in the log mean the view was recreated.
+        let marker = "controller \(ObjectIdentifier(self).debugDescription) webView \(ObjectIdentifier(webView).debugDescription)"
+        shellLog.notice("loadRootDocument: \(marker, privacy: .public)")
         do {
             guard let resources = Bundle.main.resourceURL else { throw ShellError.missingBundleResources }
             let root = resources.appendingPathComponent("www", isDirectory: true)
