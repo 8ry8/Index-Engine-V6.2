@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Existing annotated v<version> tag to publish (for example, v9.1.0.1)"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -11,33 +17,48 @@ permissions:
   id-token: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag || github.ref }}
   cancel-in-progress: false
 
 jobs:
   release:
     name: Test, package, checksum, attest, and publish
     runs-on: ubuntu-24.04
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag || github.ref_name }}
+      RELEASE_EVENT_NAME: ${{ github.event_name }}
+      RELEASE_EVENT_SHA: ${{ github.sha }}
+      RELEASE_EVENT_REF_TYPE: ${{ github.ref_type }}
     steps:
-      - name: Check out the tagged source
+      - name: Check out the release tag source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag || github.ref }}
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
-      - name: Confirm tag, package versions, and source commit
+      - name: Confirm annotated tag, package version, and source commit
         id: metadata
-        env:
-          RELEASE_TAG: ${{ github.ref_name }}
-          RELEASE_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+(\.[0-9]+){3}$ ]]; then
+            echo "::error::Release tag must use the four-part v<version> format."
+            exit 1
+          fi
           VERSION="$(node -p "require('./package.json').version")"
           test "$RELEASE_TAG" = "v$VERSION"
-          test "$(git rev-parse "$RELEASE_TAG^{commit}")" = "$RELEASE_SHA"
+          TAG_REF="refs/tags/$RELEASE_TAG"
+          test "$(git cat-file -t "$TAG_REF")" = "tag"
+          TAG_COMMIT="$(git rev-parse --verify "$TAG_REF^{commit}")"
+          CHECKED_OUT_COMMIT="$(git rev-parse HEAD)"
+          test "$TAG_COMMIT" = "$CHECKED_OUT_COMMIT"
+          if [[ "$RELEASE_EVENT_NAME" == "push" || "$RELEASE_EVENT_REF_TYPE" == "tag" ]]; then
+            test "$TAG_COMMIT" = "$RELEASE_EVENT_SHA"
+          fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "source_sha=$TAG_COMMIT" >> "$GITHUB_OUTPUT"
       - name: Install locked root dependencies
         run: npm ci
       - name: Run release checks
@@ -49,13 +70,13 @@ jobs:
         id: package
         env:
           VERSION: ${{ steps.metadata.outputs.version }}
-          RELEASE_TAG: ${{ github.ref_name }}
+          SOURCE_COMMIT: ${{ steps.metadata.outputs.source_sha }}
         run: |
           set -euo pipefail
           ASSET="index-engine-v${VERSION}.zip"
           STAGING="$(mktemp -d)"
           PACKAGE_ROOT="Index-Engine-v${VERSION}"
-          SOURCE_DATE_EPOCH="$(git show -s --format=%ct "$RELEASE_TAG")"
+          SOURCE_DATE_EPOCH="$(git show -s --format=%ct "$SOURCE_COMMIT")"
           mkdir -p "$STAGING/$PACKAGE_ROOT/docs" "$STAGING/$PACKAGE_ROOT/tools" dist
           cp -R v9 "$STAGING/$PACKAGE_ROOT/v9"
           cp tools/terminal-engine.html "$STAGING/$PACKAGE_ROOT/tools/terminal-engine.html"
@@ -79,7 +100,6 @@ jobs:
       - name: Publish GitHub Release with archive and checksum
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ github.ref_name }}
           VERSION: ${{ steps.metadata.outputs.version }}
           ASSET: ${{ steps.package.outputs.asset }}
         run: |
