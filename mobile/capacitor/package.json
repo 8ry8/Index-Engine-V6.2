@@ -21,11 +21,11 @@
     "ios:archive:unsigned": "npm run ios:sync && mkdir -p ios/App/build && xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release -destination 'generic/platform=iOS' -derivedDataPath ios/DerivedData -archivePath ios/App/build/Index-Engine.xcarchive CODE_SIGNING_ALLOWED=NO archive"
   },
   "dependencies": {
-    "@capacitor/android": "8.4.3",
-    "@capacitor/core": "8.4.3",
-    "@capacitor/ios": "8.4.3"
+    "@capacitor/android": "8.5.2",
+    "@capacitor/core": "8.5.2",
+    "@capacitor/ios": "8.5.2"
   },
   "devDependencies": {
-    "@capacitor/cli": "8.4.3"
+    "@capacitor/cli": "8.5.2"
   }
 }
