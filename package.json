@@ -26,9 +26,9 @@
     "build:terminal": "tailwindcss -i tools/terminal-tailwind.css -o .tailwind.tmp.css --minify && node tools/inline-tailwind.mjs .tailwind.tmp.css tools/terminal-engine.html"
   },
   "devDependencies": {
-    "@tailwindcss/cli": "^4.3.3",
-    "fake-indexeddb": "^6.2.6",
-    "html-validate": "11.17.0",
+    "@tailwindcss/cli": "^4.3.4",
+    "fake-indexeddb": "^6.2.7",
+    "html-validate": "11.18.0",
     "jsdom": "^30.1.3",
     "tailwindcss": "^4.3.3",
     "yaml": "2.9.1"
