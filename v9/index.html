@@ -1756,7 +1756,7 @@ async function refineWithGemini(){
   var key;
   try { key = getApiKey(); } catch(e){ return toast(e.message, 'err'); }
   var targets = S.env.length ? S.env : S.staged.map(function(f){ return {name:f.name, parts:localExtract(f)}; });
-  var model = 'gemini-2.5-flash';                       /* INV-AI-02: GA id, not a dated preview */
+  var model = 'gemini-3.8-flash';                       /* INV-AI-02: GA id, not a dated preview */
   var prompt = 'Suggest EFNAI V9.1.0.1 metadata from filenames only. Reply with JSON, no prose.\n' +
     'Schema: {"date":"YYYY.MM.DD or empty","case":"","type":"","type2":"NA or code","title":"","ver":"v01/DRAFT/FINAL/REV/EXE","priv":"","priv2":"NA or code","origin":"","origin2":"NA or code","author":"","confidence":0.0}.\n' +
     'Master order: DATE, CASE, TYPE, TYPE2, TITLE, VER, PRIV, PRIV2, ORIGIN, ORIGIN2, AUTHOR, ID (ID is assigned by the engine).\n' +
